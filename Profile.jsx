@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase, initials } from './supabaseClient'
+import { supabase, initials, matchView, MATCH_SELECT } from './supabaseClient'
 
 const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 
@@ -7,17 +7,17 @@ export default function Profile({ session, profile }) {
   const [monthly, setMonthly] = useState(null)
 
   useEffect(() => {
-    supabase.from('matches')
-      .select('points_delta,played_at')
-      .eq('player_id', session.user.id)
-      .then(({ data }) => setMonthly(buildMonthly(data || [])))
+    const id = session.user.id
+    supabase.from('matches').select(MATCH_SELECT)
+      .or(`winner_id.eq.${id},loser_id.eq.${id}`)
+      .eq('status', 'approved')
+      .then(({ data }) => setMonthly(buildMonthly((data || []).map(m => matchView(m, id)))))
   }, [session])
 
   if (!profile) return <div className="center"><div className="spin" /></div>
 
   const total = profile.wins + profile.losses
   const winRate = total ? Math.round((profile.wins / total) * 100) : 0
-
   async function logout() { await supabase.auth.signOut() }
 
   return (
@@ -29,7 +29,7 @@ export default function Profile({ session, profile }) {
       <div className="scroll">
         <div className="prof-head">
           <div className="ava">{initials(profile.name)}</div>
-          <div className="nm">{profile.name}</div>
+          <div className="nm">{profile.name}{profile.is_admin ? ' 🛠️' : ''}</div>
           <div className="cat">Categoria {profile.category} · {profile.position}º no ranking</div>
         </div>
         <div className="stat-card">
@@ -48,15 +48,15 @@ export default function Profile({ session, profile }) {
 
 function Bars({ data }) {
   if (!data) return <div className="center" style={{ padding: 20 }}><div className="spin" /></div>
-  const max = Math.max(1, ...data.map(d => Math.abs(d.v)))
+  const max = Math.max(1, ...data.map(d => d.v))
   return (
     <>
-      <div className="bars" style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 96, marginTop: 14, paddingTop: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 96, marginTop: 14, paddingTop: 6 }}>
         {data.map((d, i) => (
           <div key={i} style={{
             flex: 1, borderRadius: '6px 6px 0 0',
-            height: `${Math.max(6, (Math.abs(d.v) / max) * 100)}%`,
-            background: d.v >= 0 ? 'linear-gradient(180deg,var(--orange-2),var(--orange))' : '#dfe6e7',
+            height: `${Math.max(6, (d.v / max) * 100)}%`,
+            background: d.v > 0 ? 'linear-gradient(180deg,var(--orange-2),var(--orange))' : '#dfe6e7',
           }} />
         ))}
       </div>
@@ -75,7 +75,7 @@ function buildMonthly(matches) {
   const idx = Object.fromEntries(out.map((o, i) => [o.key, i]))
   for (const m of matches) {
     const key = (m.played_at || '').slice(0, 7)
-    if (key in idx) out[idx[key]].v += m.points_delta
+    if (key in idx) out[idx[key]].v += m.myPoints
   }
   return out
 }

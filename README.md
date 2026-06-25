@@ -1,40 +1,42 @@
 # RGTA — Ranking Geral de Tênis Amador
 
 Aplicativo web para gerenciar o ranking da liga amadora de tênis (4ª Edição 2026).
-Jogadores se cadastram, registram partidas e acompanham o ranking por categoria em tempo real.
+Jogadores se cadastram, registram partidas (com aprovação do administrador) e acompanham o ranking por categoria.
 
-**Stack:** React + Vite (front-end) · Supabase (autenticação + banco Postgres) · Vercel (hospedagem).
+**Stack:** React + Vite (front-end) · Supabase (auth + Postgres + Edge Functions) · Vercel (hospedagem).
 
 ## Funcionalidades
-- Cadastro e login (Supabase Auth).
-- Início com posição no ranking, pontos e últimos resultados.
-- Ranking por categoria (A, B, C), com o jogador em destaque.
-- Registro de partidas com placar por set — os pontos e o ranking são calculados automaticamente no banco.
-- Histórico de partidas com gráfico de evolução de pontos.
-- Perfil com estatísticas (vitórias/derrotas, aproveitamento, melhor ranking).
+- Cadastro e login (acesso imediato, sem confirmação de e-mail).
+- Início com posição, pontos e últimos resultados (com status de aprovação).
+- Ranking por categoria (A, B, C).
+- Registro de partidas: o jogador envia o placar e o administrador aprova para valer.
+- Painel do administrador: aprovar/recusar partidas, gerenciar jogadores (categoria/admin) e lançar partidas já aprovadas.
+- Histórico com gráfico de evolução e perfil com estatísticas.
 
-### Como os pontos funcionam
-Vencedor ganha **+20** pontos e o perdedor perde **−12**. Todo jogador começa com **1000** pontos.
-O cálculo é feito por uma função no banco (`register_match`), garantindo consistência mesmo que dois jogadores registrem.
+## Sistema de pontos
+Todo jogador começa com **1000** pontos. Ninguém perde pontos — todos somam (vencedores somam mais).
+
+**Mesma categoria:** vencedor **+10**, perdedor **+3** (ou **+4** se perdeu no super tiebreak).
+
+**Jogo extra (categorias diferentes — A só joga com A/B, B com A/B/C, C com B/C):**
+- Vencer um adversário de categoria acima: **+15**
+- Vencer um adversário de categoria abaixo: **+5**
+- Perder (para cima ou para baixo): **+2** (ou **+3** se perdeu no super tiebreak)
+- O vencedor não muda em caso de super tiebreak.
+
+Os pontos só entram no ranking **após a aprovação** do administrador (partidas lançadas pelo admin já entram aprovadas).
 
 ## Rodar localmente
 ```bash
 npm install
-cp .env.example .env   # já vem preenchido com as chaves públicas do projeto
+cp .env.example .env
 npm run dev
 ```
 
-## Variáveis de ambiente
-| Variável | Descrição |
-|---|---|
-| `VITE_SUPABASE_URL` | URL do projeto Supabase |
-| `VITE_SUPABASE_ANON_KEY` | Chave publishable/anon (segura para o front; os dados são protegidos por RLS) |
-
-No deploy (Vercel), configure essas duas variáveis. Se não configuradas, o app usa os valores padrão embutidos do projeto RGTA.
-
-## Banco de dados (Supabase)
-- `profiles` — um registro por jogador (nome, categoria, pontos, vitórias, derrotas).
-- `matches` — partidas (dupla entrada: uma linha por jogador).
-- `rankings` — view que ordena os jogadores por pontos dentro de cada categoria.
-- `register_match(...)` — função que registra a partida e atualiza os pontos dos dois jogadores.
-- Segurança por RLS: cada jogador só edita o próprio perfil; partidas só entram pela função.
+## Banco (Supabase)
+- `profiles` — jogadores (nome, categoria, pontos, vitórias, derrotas, is_admin).
+- `matches` — partidas com status (pending/approved/rejected) e pontos calculados.
+- `rankings` — view que ordena por pontos dentro da categoria.
+- Funções: `register_match`, `approve_match`, `reject_match`, `admin_create_match`, `admin_update_player`, `admin_set_admin`, `calc_points`.
+- Edge Function `signup` cria o jogador já confirmado (sem e-mail).
+- Segurança por RLS; ações sensíveis exigem admin.

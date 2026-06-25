@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react'
-import { supabase, initials } from './supabaseClient'
+import { supabase, initials, matchView, MATCH_SELECT } from './supabaseClient'
 
-export default function Home({ session, profile, nav }) {
+export default function Home({ session, profile, nav, isAdmin }) {
   const [last, setLast] = useState(null)
 
   useEffect(() => {
-    supabase.from('matches')
-      .select('id,set_scores,result,points_delta,opponent:opponent_id(name)')
-      .eq('player_id', session.user.id)
+    const id = session.user.id
+    supabase.from('matches').select(MATCH_SELECT)
+      .or(`winner_id.eq.${id},loser_id.eq.${id}`)
       .order('played_at', { ascending: false }).limit(5)
-      .then(({ data }) => setLast(data || []))
+      .then(({ data }) => setLast((data || []).map(m => matchView(m, id))))
   }, [session])
 
   return (
@@ -29,21 +29,24 @@ export default function Home({ session, profile, nav }) {
       <div className="scroll">
         <div className="sec">
           <button className="cta" onClick={() => nav('register')}>＋ Registrar nova partida</button>
+          {isAdmin && <button className="cta ghost" style={{ marginTop: 10 }} onClick={() => nav('admin')}>🛠️ Painel do administrador</button>}
         </div>
         <div className="sec" style={{ paddingTop: 0 }}>
           <h4>Últimos resultados</h4>
           {last === null && <div className="center"><div className="spin" /></div>}
-          {last && last.length === 0 && <div style={{ color: 'var(--ink-2)', fontSize: 13 }}>Nenhuma partida registrada ainda. Que tal lançar a primeira?</div>}
+          {last && last.length === 0 && <div style={{ color: 'var(--ink-2)', fontSize: 13 }}>Nenhuma partida ainda. Que tal registrar a primeira?</div>}
           {last && last.map(m => (
             <div className="result-row" key={m.id}>
               <div className="ava">{initials(m.opponent?.name || '?')}</div>
               <div>
                 <div className="nm">vs. {m.opponent?.name || 'Adversário'}</div>
-                <div className="sub">{m.set_scores}</div>
+                <div className="sub">{m.set_scores}{m.went_super ? ' · STB' : ''}</div>
               </div>
-              <span className={'pill ' + (m.result === 'V' ? 'win' : 'loss')}>
-                {m.result === 'V' ? 'Vitória' : 'Derrota'}
-              </span>
+              {m.status === 'pending'
+                ? <span className="pill pend">Pendente</span>
+                : m.status === 'rejected'
+                  ? <span className="pill loss">Recusada</span>
+                  : <span className={'pill ' + (m.result === 'V' ? 'win' : 'loss')}>{m.result === 'V' ? `+${m.myPoints}` : `+${m.myPoints}`}</span>}
             </div>
           ))}
         </div>
