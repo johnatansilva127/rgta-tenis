@@ -4,6 +4,7 @@ import { supabase, initials, compatible, calcPoints, MATCH_SELECT } from './supa
 import Avatar from './Avatar.jsx'
 
 const today = () => new Date().toISOString().slice(0, 10)
+const fmtDate = (d) => { if (!d) return ''; const [y, m, da] = d.split('-'); return `${da}/${m}/${y}` }
 const TABS = [['aprovar', 'Aprovações'], ['jogadores', 'Jogadores'], ['lancar', 'Lançar'], ['partidas', 'Partidas'], ['config', 'Pontuação'], ['logs', 'Logs']]
 
 export default function Admin({ session, settings, reload, tick }) {
@@ -29,7 +30,7 @@ export default function Admin({ session, settings, reload, tick }) {
 function Approvals({ reload, tick }) {
   const [rows, setRows] = useState(null); const [busy, setBusy] = useState('')
   const load = useCallback(() => {
-    supabase.from('matches').select(MATCH_SELECT).eq('status', 'pending').order('created_at', { ascending: true })
+    supabase.from('matches').select(MATCH_SELECT).in('status', ['awaiting_opponent', 'pending']).order('created_at', { ascending: true })
       .then(({ data }) => setRows(data || []))
   }, [])
   useEffect(() => { load() }, [load, tick])
@@ -43,8 +44,8 @@ function Approvals({ reload, tick }) {
     <div className="sec">
       {rows.map(m => (
         <div className="adm-card" key={m.id}>
-          <div className="adm-line"><b>{m.winner?.name}</b> <span className="tag">{m.winner?.category}</span> <span className="vs">venceu</span> {m.loser?.name} <span className="tag">{m.loser?.category}</span></div>
-          <div className="adm-sub">{m.set_scores}{m.went_super ? ' · super TB' : ''}{m.is_extra ? ' · extra' : ''} · vencedor +{m.winner_points} / perdedor +{m.loser_points}</div>
+          <div className="adm-line"><b>{m.winner?.name}</b> <span className="tag">{m.winner?.category}</span> <span className="vs">venceu</span> {m.loser?.name} <span className="tag">{m.loser?.category}</span>{m.status === 'awaiting_opponent' && <span className="tag" style={{ background: 'var(--orange-l)', color: 'var(--orange-d)' }}>aguardando adversário</span>}</div>
+          <div className="adm-sub">{fmtDate(m.played_at)} · {m.set_scores}{m.went_super ? ' · super TB' : ''}{m.is_extra ? ' · extra' : ''} · vencedor +{m.winner_points} / perdedor +{m.loser_points}</div>
           <div className="adm-actions">
             <button className="bt ok" disabled={busy === m.id} onClick={() => act(m.id, 'approve_match')}>Aprovar</button>
             <button className="bt no" disabled={busy === m.id} onClick={() => act(m.id, 'reject_match')}>Recusar</button>
@@ -179,7 +180,7 @@ function MatchesAdmin({ reload, tick }) {
       {rows.map(m => (
         <div className="adm-card" key={m.id}>
           <div className="adm-line"><b>{m.winner?.name}</b> <span className="vs">venceu</span> {m.loser?.name}</div>
-          <div className="adm-sub">{m.set_scores}{m.went_super ? ' · super TB' : ''} · +{m.winner_points}/+{m.loser_points} · {m.played_at}</div>
+          <div className="adm-sub">{fmtDate(m.played_at)} · {m.set_scores}{m.went_super ? ' · super TB' : ''} · +{m.winner_points}/+{m.loser_points}</div>
           {editing === m.id ? (
             <div className="edit-grid">
               <label>Vencedor<select value={form.winner} onChange={e => setForm(f => ({ ...f, winner: e.target.value }))}>{players.map(p => <option key={p.id} value={p.id}>{p.name} ({p.category})</option>)}</select></label>
