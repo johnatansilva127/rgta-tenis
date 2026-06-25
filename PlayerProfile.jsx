@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Icon from './Icon.jsx'
 import { supabase, matchView, MATCH_SELECT } from './supabaseClient'
 import Avatar from './Avatar.jsx'
 
@@ -15,7 +16,7 @@ export default function PlayerProfile({ session, playerId, nav, tick }) {
       .then(({ data }) => setMatches(data || []))
   }, [playerId, tick])
 
-  if (!p) return (<><div className="topbar"><div className="row"><button className="ic" onClick={() => nav('ranking')}>‹</button><h3>Perfil</h3><div style={{ width: 34 }} /></div></div><div className="center"><div className="spin" /></div></>)
+  if (!p) return (<><div className="topbar"><div className="row"><button className="ic" onClick={() => nav('ranking')} aria-label="Voltar"><Icon name="chevronLeft" size={22} /></button><h3>Perfil</h3><div style={{ width: 34 }} /></div></div><div className="center"><div className="spin" /></div></>)
 
   const theirView = (matches || []).map(m => matchView(m, playerId))
   const h2h = (matches || []).filter(m => m.winner_id === me || m.loser_id === me)
@@ -26,12 +27,12 @@ export default function PlayerProfile({ session, playerId, nav, tick }) {
   return (
     <>
       <div className="topbar"><div className="row">
-        <button className="ic" onClick={() => nav('ranking')}>‹</button><h3>Jogador</h3><div style={{ width: 34 }} />
+        <button className="ic" onClick={() => nav('ranking')} aria-label="Voltar"><Icon name="chevronLeft" size={22} /></button><h3>Jogador</h3><div style={{ width: 34 }} />
       </div></div>
       <div className="scroll">
         <div className="prof-head">
           <Avatar name={p.name} url={p.avatar_url} size={78} style={{ border: '3px solid rgba(255,255,255,.5)' }} />
-          <div className="nm">{p.name}{p.is_admin ? ' 🛠️' : ''}</div>
+          <div className="nm">{p.name}{p.is_admin && <Icon name="shield" size={15} />}</div>
           <div className="cat">Categoria {p.category} · {p.position}º no ranking</div>
         </div>
         <div className="stat-card">

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import Icon from './Icon.jsx'
 import { supabase, initials, compatible, calcPoints, MATCH_SELECT } from './supabaseClient'
 import Avatar from './Avatar.jsx'
 
@@ -237,7 +238,7 @@ function Logs({ tick }) {
     <div className="sec">
       {rows.map(r => (
         <div className="note-row" key={r.id}>
-          <div className="note-ic">📋</div>
+          <div className="note-ic"><Icon name="file" size={16} /></div>
           <div><div className="nm" style={{ fontSize: 13, fontWeight: 700 }}>{r.action}</div>
             <div className="sub" style={{ fontSize: 11.5, color: 'var(--ink-2)' }}>{r.actor_name || '—'} · {new Date(r.created_at).toLocaleString('pt-BR')}</div></div>
         </div>

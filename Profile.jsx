@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import Icon from './Icon.jsx'
 import { supabase, matchView, MATCH_SELECT, uploadAvatar } from './supabaseClient'
 import Avatar from './Avatar.jsx'
 
@@ -50,13 +51,13 @@ export default function Profile({ session, profile, reload, tick }) {
     <>
       <div className="topbar"><div className="row">
         <h3>Perfil</h3>
-        <button className="ic" onClick={logout} title="Sair">⏻</button>
+        <button className="ic" onClick={logout} title="Sair" aria-label="Sair"><Icon name="logout" size={18} /></button>
       </div></div>
       <div className="scroll">
         <div className="prof-head">
           <div style={{ position: 'relative' }} onClick={() => fileRef.current?.click()}>
             <Avatar name={profile.name} url={profile.avatar_url} size={78} style={{ border: '3px solid rgba(255,255,255,.5)' }} />
-            <div className="cam">📷</div>
+            <div className="cam"><Icon name="camera" size={14} /></div>
           </div>
           <input ref={fileRef} type="file" accept="image/*" hidden onChange={onPhoto} />
           {edit ? (
@@ -66,7 +67,7 @@ export default function Profile({ session, profile, reload, tick }) {
               <button className="bt" onClick={() => setEdit(false)}>X</button>
             </div>
           ) : (
-            <div className="nm" onClick={startEdit}>{profile.name}{profile.is_admin ? ' 🛠️' : ''} <span style={{ fontSize: 13, opacity: .8 }}>✎</span></div>
+            <div className="nm" onClick={startEdit}>{profile.name}{profile.is_admin && <Icon name="shield" size={15} />} <Icon name="pencil" size={15} style={{ opacity: .85 }} /></div>
           )}
           <div className="cat">Categoria {profile.category} · {profile.position}º no ranking</div>
         </div>
@@ -76,7 +77,7 @@ export default function Profile({ session, profile, reload, tick }) {
             <div><div className="k">Vitórias / Derrotas</div><div className="v">{profile.wins} / {profile.losses}</div></div>
             <div><div className="k">Melhor ranking</div><div className="v">{profile.best_rank ? profile.best_rank + 'º' : '—'}</div></div>
             <div><div className="k">Aproveitamento</div><div className="v up">{winRate}%</div></div>
-            <div><div className="k">Sequência atual</div><div className="v">{streak > 0 ? `${streak} 🔥` : '—'}</div></div>
+            <div><div className="k">Sequência atual</div><div className="v">{streak > 0 ? <>{streak}<Icon name="flame" size={15} /></> : '—'}</div></div>
             <div><div className="k">Total de jogos</div><div className="v">{total}</div></div>
           </div>
           <Bars data={monthly} />

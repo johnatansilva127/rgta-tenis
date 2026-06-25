@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Icon from './Icon.jsx'
 import { supabase, matchView, MATCH_SELECT } from './supabaseClient'
 import Avatar from './Avatar.jsx'
 
@@ -26,7 +27,7 @@ export default function Home({ session, profile, nav, isAdmin, openNotifs, badge
         <div className="row">
           <h3>RGTA</h3>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="ic bell" onClick={openNotifs}>🔔{badge > 0 && <span className="bdg">{badge}</span>}</button>
+            <button className="ic bell" onClick={openNotifs} aria-label="Avisos"><Icon name="bell" size={20} />{badge > 0 && <span className="bdg">{badge}</span>}</button>
             <button className="ic" onClick={() => nav('profile')}><Avatar name={profile?.name} url={profile?.avatar_url} size={34} /></button>
           </div>
         </div>
@@ -39,8 +40,8 @@ export default function Home({ session, profile, nav, isAdmin, openNotifs, badge
       </div>
       <div className="scroll">
         <div className="sec">
-          <button className="cta" onClick={() => nav('register')}>＋ Registrar nova partida</button>
-          {isAdmin && <button className="cta ghost" style={{ marginTop: 10 }} onClick={() => nav('admin')}>🛠️ Painel do administrador</button>}
+          <button className="cta" onClick={() => nav('register')}><Icon name="plus" size={18} /> Registrar nova partida</button>
+          {isAdmin && <button className="cta ghost" style={{ marginTop: 10 }} onClick={() => nav('admin')}><Icon name="shield" size={18} /> Painel do administrador</button>}
         </div>
         <div className="sec" style={{ paddingTop: 0 }}>
           <h4>Últimos resultados</h4>

@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react'
+import Icon from './Icon.jsx'
 import { supabase, matchView, MATCH_SELECT } from './supabaseClient'
 import Avatar from './Avatar.jsx'
 
-const ICON = { confirm_request: '✋', confirmed: '✅', disputed: '⚠️', approved: '🏆', rejected: '🚫', rank_up: '⬆️', rank_down: '⬇️', match_removed: '🗑️', to_approve: '📝' }
+const ICON = { confirm_request: 'userCheck', confirmed: 'check', disputed: 'alert', approved: 'trophy', rejected: 'ban', rank_up: 'arrowUp', rank_down: 'arrowDown', match_removed: 'trash', to_approve: 'file' }
 
 export default function Notifs({ session, nav, tick }) {
   const [confirms, setConfirms] = useState(null)
@@ -33,7 +34,7 @@ export default function Notifs({ session, nav, tick }) {
   return (
     <>
       <div className="topbar"><div className="row">
-        <button className="ic" onClick={() => nav('home')}>‹</button>
+        <button className="ic" onClick={() => nav('home')} aria-label="Voltar"><Icon name="chevronLeft" size={22} /></button>
         <h3>Avisos</h3><div style={{ width: 34 }} />
       </div></div>
       <div className="scroll">
@@ -61,7 +62,7 @@ export default function Notifs({ session, nav, tick }) {
           {notes && notes.length === 0 && <div style={{ color: 'var(--ink-2)', fontSize: 13 }}>Sem avisos.</div>}
           {notes && notes.map(n => (
             <div className="note-row" key={n.id}>
-              <div className="note-ic">{ICON[n.type] || '🔔'}</div>
+              <div className="note-ic"><Icon name={ICON[n.type] || 'bell'} size={17} /></div>
               <div><div className="nm" style={{ fontSize: 13, fontWeight: 700 }}>{n.title}</div>
                 <div className="sub" style={{ fontSize: 11.5, color: 'var(--ink-2)' }}>{n.body}</div></div>
             </div>

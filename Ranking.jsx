@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
+import Icon from './Icon.jsx'
 import { supabase } from './supabaseClient'
 import Avatar from './Avatar.jsx'
 
 function delta(p) {
   if (p.prev_position == null || p.prev_position === p.position) return <span className="delta">–</span>
-  if (p.prev_position > p.position) return <span className="delta up">▲{p.prev_position - p.position}</span>
-  return <span className="delta down">▼{p.position - p.prev_position}</span>
+  if (p.prev_position > p.position) return <span className="delta up"><Icon name="arrowUp" size={13} />{p.prev_position - p.position}</span>
+  return <span className="delta down"><Icon name="arrowDown" size={13} />{p.position - p.prev_position}</span>
 }
 
 export default function Ranking({ session, tick, openPlayer }) {
@@ -35,7 +36,7 @@ export default function Ranking({ session, tick, openPlayer }) {
     <>
       <div className="topbar"><div className="row">
         <h3>Ranking</h3>
-        <button className="ic" onClick={exportRanking} title="Exportar">⤓</button>
+        <button className="ic" onClick={exportRanking} title="Exportar" aria-label="Exportar"><Icon name="download" size={20} /></button>
       </div></div>
       <div className="tabs">
         {['A', 'B', 'C'].map(c => <button key={c} className={tab === c ? 'on' : ''} onClick={() => setTab(c)}>CAT. {c}</button>)}
@@ -47,7 +48,7 @@ export default function Ranking({ session, tick, openPlayer }) {
           <div className={'rk-row ' + (r.id === session.user.id ? 'me' : '')} key={r.id} onClick={() => openPlayer(r.id)}>
             <div className="rk-pos">{r.position}</div>
             <Avatar name={r.name} url={r.avatar_url} size={34} />
-            <div className="rk-name">{r.name}{r.is_admin ? ' 🛠️' : ''}</div>
+            <div className="rk-name">{r.name}{r.is_admin && <Icon name="shield" size={13} className="adm-i" />}</div>
             {delta(r)}
             <div className="rk-pts">{r.points}</div>
           </div>

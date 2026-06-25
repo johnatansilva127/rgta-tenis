@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
+import Icon from './Icon.jsx'
 import { supabase, DEFAULT_SETTINGS } from './supabaseClient'
 import Auth from './Auth.jsx'
 import Home from './Home.jsx'
@@ -11,13 +12,13 @@ import Notifs from './Notifs.jsx'
 import PlayerProfile from './PlayerProfile.jsx'
 
 const BASE_TABS = [
-  { id: 'home', icon: '🏠', label: 'Início' },
-  { id: 'ranking', icon: '📊', label: 'Ranking' },
-  { id: 'register', icon: '＋', label: 'Registrar' },
-  { id: 'history', icon: '🎾', label: 'Partidas' },
-  { id: 'profile', icon: '👤', label: 'Perfil' },
+  { id: 'home', icon: 'home', label: 'Início' },
+  { id: 'ranking', icon: 'chart', label: 'Ranking' },
+  { id: 'register', icon: 'plus', label: 'Registrar' },
+  { id: 'history', icon: 'ball', label: 'Partidas' },
+  { id: 'profile', icon: 'user', label: 'Perfil' },
 ]
-const ADMIN_TAB = { id: 'admin', icon: '🛠️', label: 'Admin' }
+const ADMIN_TAB = { id: 'admin', icon: 'shield', label: 'Admin' }
 
 export default function App() {
   const [session, setSession] = useState(undefined)
@@ -97,7 +98,7 @@ export default function App() {
             const active = screen === t.id || (t.id === 'home' && ['notifs', 'player'].includes(screen))
             return (
               <button key={t.id} className={active ? 'on' : ''} onClick={() => nav(t.id)}>
-                <span className="ti">{t.icon}</span>{t.label}
+                <span className="ti"><Icon name={t.icon} size={22} /></span>{t.label}
               </button>
             )
           })}

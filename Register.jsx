@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import Icon from './Icon.jsx'
 import { supabase, compatible, calcPoints } from './supabaseClient'
 import Avatar from './Avatar.jsx'
 
@@ -51,7 +52,7 @@ export default function Register({ session, profile, settings, nav }) {
   return (
     <>
       <div className="topbar"><div className="row">
-        <button className="ic" onClick={() => nav('home')}>‹</button>
+        <button className="ic" onClick={() => nav('home')} aria-label="Voltar"><Icon name="chevronLeft" size={22} /></button>
         <h3>Registrar Partida</h3><div style={{ width: 34 }} />
       </div></div>
       <div className="scroll"><div className="sec">
