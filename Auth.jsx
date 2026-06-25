@@ -1,0 +1,86 @@
+import { useState } from 'react'
+import { supabase } from './supabaseClient'
+import Logo from './Logo.jsx'
+
+export default function Auth() {
+  const [mode, setMode] = useState('login') // login | signup
+  const [name, setName] = useState('')
+  const [category, setCategory] = useState('C')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [err, setErr] = useState('')
+  const [msg, setMsg] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function submit(e) {
+    e.preventDefault()
+    setErr(''); setMsg(''); setLoading(true)
+    try {
+      if (mode === 'login') {
+        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) throw error
+      } else {
+        if (!name.trim()) throw new Error('Informe seu nome.')
+        if (password.length < 6) throw new Error('A senha precisa ter ao menos 6 caracteres.')
+        const { data, error } = await supabase.auth.signUp({
+          email, password,
+          options: { data: { name: name.trim(), category } },
+        })
+        if (error) throw error
+        if (!data.session) {
+          setMsg('Cadastro criado! Verifique seu e-mail para confirmar e depois faça login.')
+          setMode('login')
+        }
+      }
+    } catch (e) {
+      setErr(traduz(e.message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="login">
+      <div className="court-lines" />
+      <div className="brand">
+        <Logo size={92} />
+        <h2>RG<span>TA</span></h2>
+        <p>RANKING GERAL DE TÊNIS AMADOR</p>
+      </div>
+
+      {err && <div className="err">{err}</div>}
+      {msg && <div className="ok">{msg}</div>}
+
+      <form onSubmit={submit} style={{ width: '100%', zIndex: 2 }}>
+        {mode === 'signup' && (
+          <>
+            <div className="field">👤<input placeholder="Nome completo" value={name} onChange={e => setName(e.target.value)} /></div>
+            <div className="field">🎾
+              <select value={category} onChange={e => setCategory(e.target.value)}>
+                <option value="A">Categoria A</option>
+                <option value="B">Categoria B</option>
+                <option value="C">Categoria C</option>
+              </select>
+            </div>
+          </>
+        )}
+        <div className="field">✉️<input type="email" required placeholder="E-mail" value={email} onChange={e => setEmail(e.target.value)} /></div>
+        <div className="field">🔒<input type="password" required placeholder="Senha" value={password} onChange={e => setPassword(e.target.value)} /></div>
+        <button className="btn-primary" disabled={loading}>
+          {loading ? 'Aguarde…' : (mode === 'login' ? 'Entrar' : 'Criar conta')}
+        </button>
+      </form>
+
+      {mode === 'login'
+        ? <button className="linkbtn reg" onClick={() => { setMode('signup'); setErr(''); setMsg('') }}>Não tem conta? Cadastre-se</button>
+        : <button className="linkbtn" onClick={() => { setMode('login'); setErr(''); setMsg('') }}>Já tenho conta — Entrar</button>}
+    </div>
+  )
+}
+
+function traduz(m = '') {
+  if (/Invalid login credentials/i.test(m)) return 'E-mail ou senha incorretos.'
+  if (/already registered/i.test(m)) return 'Este e-mail já está cadastrado.'
+  if (/Email not confirmed/i.test(m)) return 'Confirme seu e-mail antes de entrar.'
+  return m
+}
