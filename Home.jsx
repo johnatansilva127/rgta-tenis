@@ -1,23 +1,34 @@
 import { useEffect, useState } from 'react'
-import { supabase, initials, matchView, MATCH_SELECT } from './supabaseClient'
+import { supabase, matchView, MATCH_SELECT } from './supabaseClient'
+import Avatar from './Avatar.jsx'
 
-export default function Home({ session, profile, nav, isAdmin }) {
+function pill(m) {
+  if (m.status === 'awaiting_opponent') return <span className="pill pend">Aguardando confirmação</span>
+  if (m.status === 'pending') return <span className="pill pend">Em aprovação</span>
+  if (m.status === 'rejected') return <span className="pill loss">Recusada</span>
+  return <span className={'pill ' + (m.result === 'V' ? 'win' : 'loss')}>+{m.myPoints}</span>
+}
+
+export default function Home({ session, profile, nav, isAdmin, openNotifs, badge, tick }) {
   const [last, setLast] = useState(null)
 
   useEffect(() => {
     const id = session.user.id
     supabase.from('matches').select(MATCH_SELECT)
       .or(`winner_id.eq.${id},loser_id.eq.${id}`)
-      .order('played_at', { ascending: false }).limit(5)
+      .order('played_at', { ascending: false }).limit(6)
       .then(({ data }) => setLast((data || []).map(m => matchView(m, id))))
-  }, [session])
+  }, [session, tick])
 
   return (
     <>
       <div className="topbar">
         <div className="row">
           <h3>RGTA</h3>
-          <div className="ic" onClick={() => nav('profile')}>{profile ? initials(profile.name) : '·'}</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="ic bell" onClick={openNotifs}>🔔{badge > 0 && <span className="bdg">{badge}</span>}</button>
+            <button className="ic" onClick={() => nav('profile')}><Avatar name={profile?.name} url={profile?.avatar_url} size={34} /></button>
+          </div>
         </div>
       </div>
       <div className="summary">
@@ -34,19 +45,15 @@ export default function Home({ session, profile, nav, isAdmin }) {
         <div className="sec" style={{ paddingTop: 0 }}>
           <h4>Últimos resultados</h4>
           {last === null && <div className="center"><div className="spin" /></div>}
-          {last && last.length === 0 && <div style={{ color: 'var(--ink-2)', fontSize: 13 }}>Nenhuma partida ainda. Que tal registrar a primeira?</div>}
+          {last && last.length === 0 && <div style={{ color: 'var(--ink-2)', fontSize: 13 }}>Nenhuma partida ainda. Registre a primeira!</div>}
           {last && last.map(m => (
             <div className="result-row" key={m.id}>
-              <div className="ava">{initials(m.opponent?.name || '?')}</div>
+              <Avatar name={m.opponent?.name} url={m.opponent?.avatar_url} />
               <div>
                 <div className="nm">vs. {m.opponent?.name || 'Adversário'}</div>
                 <div className="sub">{m.set_scores}{m.went_super ? ' · STB' : ''}</div>
               </div>
-              {m.status === 'pending'
-                ? <span className="pill pend">Pendente</span>
-                : m.status === 'rejected'
-                  ? <span className="pill loss">Recusada</span>
-                  : <span className={'pill ' + (m.result === 'V' ? 'win' : 'loss')}>{m.result === 'V' ? `+${m.myPoints}` : `+${m.myPoints}`}</span>}
+              {pill(m)}
             </div>
           ))}
         </div>
