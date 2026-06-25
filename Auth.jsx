@@ -22,15 +22,14 @@ export default function Auth() {
       } else {
         if (!name.trim()) throw new Error('Informe seu nome.')
         if (password.length < 6) throw new Error('A senha precisa ter ao menos 6 caracteres.')
-        const { data, error } = await supabase.auth.signUp({
-          email, password,
-          options: { data: { name: name.trim(), category } },
+        // Cadastro via Edge Function (cria o jogador ja confirmado, sem e-mail).
+        const { data, error } = await supabase.functions.invoke('signup', {
+          body: { email, password, name: name.trim(), category },
         })
-        if (error) throw error
-        if (!data.session) {
-          setMsg('Cadastro criado! Verifique seu e-mail para confirmar e depois faça login.')
-          setMode('login')
-        }
+        if (error) throw new Error('Nao foi possivel concluir o cadastro. Tente novamente.')
+        if (!data?.ok) throw new Error(data?.error || 'Nao foi possivel concluir o cadastro.')
+        const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
+        if (signInErr) throw signInErr
       }
     } catch (e) {
       setErr(traduz(e.message))
@@ -80,7 +79,7 @@ export default function Auth() {
 
 function traduz(m = '') {
   if (/Invalid login credentials/i.test(m)) return 'E-mail ou senha incorretos.'
-  if (/already registered/i.test(m)) return 'Este e-mail já está cadastrado.'
+  if (/already registered|ja esta cadastrado/i.test(m)) return 'Este e-mail já está cadastrado.'
   if (/Email not confirmed/i.test(m)) return 'Confirme seu e-mail antes de entrar.'
   return m
 }
