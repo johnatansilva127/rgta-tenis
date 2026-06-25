@@ -1,7 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 
-const url = import.meta.env.VITE_SUPABASE_URL || 'https://gddolfuirfbydoehzzua.supabase.co'
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_BcevTStinQttWWwHL-Udbg_kBmq41De'
+const url = import.meta.env.VITE_SUPABASE_URL
+const key = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+if (!url || !key) {
+  console.error('Config ausente: defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no Vercel.')
+}
 
 export const supabase = createClient(url, key)
 
