@@ -17,7 +17,7 @@ export default function Register({ session, profile, settings, nav }) {
   const myCat = profile?.category || 'C'
 
   useEffect(() => {
-    supabase.from('profiles').select('id,name,category').neq('id', session.user.id).order('name')
+    supabase.from('profiles').select('id,name,category').eq('is_player', true).neq('id', session.user.id).order('name')
       .then(({ data }) => setPlayers((data || []).filter(p => compatible(myCat, p.category))))
   }, [session, myCat])
 

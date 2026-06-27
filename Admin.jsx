@@ -117,7 +117,7 @@ function AddMatch({ settings, reload }) {
   const [players, setPlayers] = useState([]); const [winner, setWinner] = useState(''); const [loser, setLoser] = useState('')
   const [sets, setSets] = useState([['', ''], ['', ''], ['', '']]); const [superTb, setSuperTb] = useState(false); const [date, setDate] = useState(today())
   const [err, setErr] = useState(''); const [ok, setOk] = useState(''); const [saving, setSaving] = useState(false)
-  useEffect(() => { supabase.from('profiles').select('id,name,category').order('name').then(({ data }) => setPlayers(data || [])) }, [])
+  useEffect(() => { supabase.from('profiles').select('id,name,category').eq('is_player', true).order('name').then(({ data }) => setPlayers(data || [])) }, [])
   const W = players.find(p => p.id === winner), L = players.find(p => p.id === loser)
   const compat = W && L ? compatible(W.category, L.category) : true
   const preview = W && L && compat ? calcPoints(W.category, L.category, superTb, settings) : null
@@ -161,7 +161,7 @@ function MatchesAdmin({ reload, tick }) {
   const [rows, setRows] = useState(null); const [players, setPlayers] = useState([]); const [editing, setEditing] = useState(null); const [form, setForm] = useState({})
   const load = useCallback(() => {
     supabase.from('matches').select(MATCH_SELECT).eq('status', 'approved').order('played_at', { ascending: false }).limit(60).then(({ data }) => setRows(data || []))
-    supabase.from('profiles').select('id,name,category').order('name').then(({ data }) => setPlayers(data || []))
+    supabase.from('profiles').select('id,name,category').eq('is_player', true).order('name').then(({ data }) => setPlayers(data || []))
   }, [])
   useEffect(() => { load() }, [load, tick])
   function startEdit(m) { setEditing(m.id); setForm({ winner: m.winner_id, loser: m.loser_id, scores: m.set_scores, superTb: m.went_super }) }

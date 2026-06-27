@@ -15,7 +15,7 @@ export default function Ranking({ session, tick, openPlayer }) {
 
   useEffect(() => {
     setRows(null)
-    supabase.from('rankings').select('*').eq('category', tab).order('position', { ascending: true })
+    supabase.from('rankings').select('*').eq('category', tab).eq('is_player', true).order('position', { ascending: true })
       .then(({ data }) => setRows(data || []))
   }, [tab, tick])
 
