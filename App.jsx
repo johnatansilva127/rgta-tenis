@@ -86,15 +86,8 @@ export default function App() {
   return (
     <Shell>
       <div className="screen">
-        {screen === 'home' && <Home {...props} />}
-        {screen === 'ranking' && <Ranking {...props} />}
-        {screen === 'register' && <Register {...props} />}
-        {screen === 'history' && <History {...props} />}
-        {screen === 'profile' && <Profile {...props} />}
-        {screen === 'admin' && isAdmin && <Admin {...props} />}
-        {screen === 'notifs' && <Notifs {...props} />}
-        {screen === 'player' && <PlayerProfile {...props} playerId={viewPlayer} />}
         <nav className="tabbar">
+          <div className="nav-brand">RG<span>TA</span></div>
           {tabs.map(t => {
             const active = screen === t.id || (t.id === 'home' && ['notifs', 'player'].includes(screen))
             return (
@@ -104,6 +97,16 @@ export default function App() {
             )
           })}
         </nav>
+        <div className="content">
+          {screen === 'home' && <Home {...props} />}
+          {screen === 'ranking' && <Ranking {...props} />}
+          {screen === 'register' && <Register {...props} />}
+          {screen === 'history' && <History {...props} />}
+          {screen === 'profile' && <Profile {...props} />}
+          {screen === 'admin' && isAdmin && <Admin {...props} />}
+          {screen === 'notifs' && <Notifs {...props} />}
+          {screen === 'player' && <PlayerProfile {...props} playerId={viewPlayer} />}
+        </div>
       </div>
     </Shell>
   )
