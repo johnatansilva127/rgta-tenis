@@ -18,14 +18,19 @@ export function compatible(c1, c2) { return Math.abs(CAT_RANK[c1] - CAT_RANK[c2]
 
 export const DEFAULT_SETTINGS = {
   win_same: 10, loss_same: 3, win_above: 15, win_below: 5,
-  loss_extra: 2, super_bonus: 1, start_points: 0, rematch_days: 15,
+  loss_extra: 2, loss_below: 1, super_bonus: 1, start_points: 0, rematch_days: 15,
 }
 
-export function calcPoints(cw, cl, wentSuper, s = DEFAULT_SETTINGS) {
+export function calcPoints(cw, cl, wentSuper, s = DEFAULT_SETTINGS, wo = false) {
   let wp, baseLoss
   if (cw === cl) { wp = s.win_same; baseLoss = s.loss_same }
-  else { wp = CAT_RANK[cw] < CAT_RANK[cl] ? s.win_above : s.win_below; baseLoss = s.loss_extra }
-  return { winner: wp, loser: baseLoss + (wentSuper ? s.super_bonus : 0) }
+  else {
+    wp = CAT_RANK[cw] < CAT_RANK[cl] ? s.win_above : s.win_below
+    baseLoss = CAT_RANK[cl] > CAT_RANK[cw] ? s.loss_below : s.loss_extra
+  }
+  let loser = baseLoss + (wentSuper ? s.super_bonus : 0)
+  if (wo) loser = 0
+  return { winner: wp, loser }
 }
 
 export const MATCH_SELECT =

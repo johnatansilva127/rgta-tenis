@@ -9,8 +9,9 @@ function delta(p) {
   return <span className="delta down"><Icon name="arrowDown" size={13} />{p.position - p.prev_position}</span>
 }
 
-export default function Ranking({ session, tick, openPlayer }) {
-  const [tab, setTab] = useState('B')
+export default function Ranking({ session, tick, openPlayer, rankTab, setRankTab }) {
+  const tab = rankTab || 'B'
+  const setTab = setRankTab
   const [rows, setRows] = useState(null)
 
   useEffect(() => {

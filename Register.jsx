@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import Icon from './Icon.jsx'
 import { supabase, compatible, calcPoints } from './supabaseClient'
 import Avatar from './Avatar.jsx'
+import Icon from './Icon.jsx'
 
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -11,6 +11,7 @@ export default function Register({ session, profile, settings, nav }) {
   const [result, setResult] = useState('V')
   const [sets, setSets] = useState([['', ''], ['', ''], ['', '']])
   const [superTb, setSuperTb] = useState(false)
+  const [wo, setWo] = useState(false)
   const [date, setDate] = useState(today())
   const [err, setErr] = useState(''); const [ok, setOk] = useState(''); const [saving, setSaving] = useState(false)
 
@@ -26,9 +27,9 @@ export default function Register({ session, profile, settings, nav }) {
     if (!oppObj) return null
     const cw = result === 'V' ? myCat : oppObj.category
     const cl = result === 'V' ? oppObj.category : myCat
-    const pts = calcPoints(cw, cl, superTb, settings)
+    const pts = calcPoints(cw, cl, superTb && !wo, settings, wo)
     return result === 'V' ? { me: pts.winner, opp: pts.loser } : { me: pts.loser, opp: pts.winner }
-  }, [oppObj, result, myCat, superTb, settings])
+  }, [oppObj, result, myCat, superTb, wo, settings])
 
   function setScore(i, j, v) { const n = sets.map(r => [...r]); n[i][j] = v.replace(/[^0-9]/g, '').slice(0, 2); setSets(n) }
   function buildScores() { return sets.filter(([a, b]) => a !== '' || b !== '').map(([a, b]) => `${a || 0}-${b || 0}`).join(' / ') }
@@ -36,16 +37,17 @@ export default function Register({ session, profile, settings, nav }) {
   async function save() {
     setErr(''); setOk('')
     if (!opponent) return setErr('Selecione o adversário.')
-    const scores = buildScores()
-    if (!scores) return setErr('Informe o placar de pelo menos um set.')
+    const scores = wo ? 'W.O.' : buildScores()
+    if (!wo && !scores) return setErr('Informe o placar de pelo menos um set.')
     setSaving(true)
     const { error } = await supabase.rpc('register_match', {
-      p_opponent: opponent, p_result: result, p_set_scores: scores, p_went_super: superTb, p_played_at: date,
+      p_opponent: opponent, p_result: result, p_set_scores: scores,
+      p_went_super: superTb && !wo, p_played_at: date, p_wo: wo,
     })
     setSaving(false)
     if (error) return setErr(error.message)
-    setOk('Enviado! O adversário precisa confirmar o placar e depois o admin aprova.')
-    setTimeout(() => nav('home'), 1800)
+    setOk('Enviado! O adversário precisa confirmar e depois o admin aprova.')
+    setTimeout(() => nav('home'), 1700)
   }
 
   const isExtra = oppObj && oppObj.category !== myCat
@@ -69,28 +71,36 @@ export default function Register({ session, profile, settings, nav }) {
             </select>
           </div>
         </div>
-        {players.length === 0 && <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 6 }}>Nenhum adversário compatível cadastrado. (A não joga contra C.)</div>}
         {isExtra && <div style={{ fontSize: 12, color: 'var(--orange-d)', marginTop: 6, fontWeight: 600 }}>Jogo extra (categorias diferentes)</div>}
-        <div className="form-lbl">PLACAR POR SET (você - adversário)</div>
-        <div className="score-grid">
-          {sets.map((s, i) => (
-            <div className="set" key={i}>
-              <div className="st">{i === 2 && superTb ? 'SUPER TB' : 'SET ' + (i + 1)}</div>
-              <div className="sc">
-                <input inputMode="numeric" value={s[0]} onChange={e => setScore(i, 0, e.target.value)} placeholder="0" />
-                <input inputMode="numeric" value={s[1]} onChange={e => setScore(i, 1, e.target.value)} placeholder="0" />
-              </div>
-            </div>
-          ))}
-        </div>
-        <label className="checkrow">
-          <input type="checkbox" checked={superTb} onChange={e => setSuperTb(e.target.checked)} /> O 3º set foi super tie-break
-        </label>
+
         <div className="form-lbl">RESULTADO</div>
         <div className="seg">
           <div className={result === 'V' ? 'on' : ''} onClick={() => setResult('V')}>Vitória</div>
           <div className={result === 'D' ? 'on' : ''} onClick={() => setResult('D')}>Derrota</div>
         </div>
+        <label className="checkrow">
+          <input type="checkbox" checked={wo} onChange={e => setWo(e.target.checked)} />
+          Foi W.O. (desistência / não compareceu) — quem perde fica com 0 pontos
+        </label>
+
+        {!wo && <>
+          <div className="form-lbl">PLACAR POR SET (você - adversário)</div>
+          <div className="score-grid">
+            {sets.map((s, i) => (
+              <div className="set" key={i}>
+                <div className="st">{i === 2 && superTb ? 'SUPER TB' : 'SET ' + (i + 1)}</div>
+                <div className="sc">
+                  <input inputMode="numeric" value={s[0]} onChange={e => setScore(i, 0, e.target.value)} placeholder="0" />
+                  <input inputMode="numeric" value={s[1]} onChange={e => setScore(i, 1, e.target.value)} placeholder="0" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <label className="checkrow">
+            <input type="checkbox" checked={superTb} onChange={e => setSuperTb(e.target.checked)} /> O 3º set foi super tie-break
+          </label>
+        </>}
+
         {preview && <div className="ptsbox">Pontos (após aprovação): <b>você +{preview.me}</b> · adversário +{preview.opp}</div>}
         <div className="form-lbl">DATA</div>
         <input className="date" type="date" value={date} onChange={e => setDate(e.target.value)} />

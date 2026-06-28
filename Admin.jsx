@@ -120,7 +120,8 @@ function AddMatch({ settings, reload }) {
   useEffect(() => { supabase.from('profiles').select('id,name,category').eq('is_player', true).order('name').then(({ data }) => setPlayers(data || [])) }, [])
   const W = players.find(p => p.id === winner), L = players.find(p => p.id === loser)
   const compat = W && L ? compatible(W.category, L.category) : true
-  const preview = W && L && compat ? calcPoints(W.category, L.category, superTb, settings) : null
+  const [wo, setWo] = useState(false)
+  const preview = W && L && compat ? calcPoints(W.category, L.category, superTb && !wo, settings, wo) : null
   function setScore(i, j, v) { const n = sets.map(r => [...r]); n[i][j] = v.replace(/[^0-9]/g, '').slice(0, 2); setSets(n) }
   function buildScores() { return sets.filter(([a, b]) => a !== '' || b !== '').map(([a, b]) => `${a || 0}-${b || 0}`).join(' / ') }
   async function save() {
@@ -128,11 +129,11 @@ function AddMatch({ settings, reload }) {
     if (!winner || !loser) return setErr('Selecione vencedor e perdedor.')
     if (winner === loser) return setErr('Jogadores devem ser diferentes.')
     if (!compat) return setErr('Categorias incompatíveis (A não joga com C).')
-    const scores = buildScores(); if (!scores) return setErr('Informe o placar.')
+    const scores = wo ? 'W.O.' : buildScores(); if (!wo && !scores) return setErr('Informe o placar.')
     setSaving(true)
-    const { error } = await supabase.rpc('admin_create_match', { p_winner: winner, p_loser: loser, p_set_scores: scores, p_went_super: superTb, p_played_at: date })
+    const { error } = await supabase.rpc('admin_create_match', { p_winner: winner, p_loser: loser, p_set_scores: scores, p_went_super: superTb && !wo, p_played_at: date, p_wo: wo })
     setSaving(false); if (error) return setErr(error.message)
-    setOk('Partida lançada e aprovada!'); setSets([['', ''], ['', ''], ['', '']]); setSuperTb(false); setWinner(''); setLoser(''); await reload()
+    setOk('Partida lançada e aprovada!'); setSets([['', ''], ['', ''], ['', '']]); setSuperTb(false); setWo(false); setWinner(''); setLoser(''); await reload()
   }
   return (
     <div className="sec">
@@ -149,6 +150,7 @@ function AddMatch({ settings, reload }) {
           <div className="sc"><input inputMode="numeric" value={s[0]} onChange={e => setScore(i, 0, e.target.value)} placeholder="0" /><input inputMode="numeric" value={s[1]} onChange={e => setScore(i, 1, e.target.value)} placeholder="0" /></div></div>
       ))}</div>
       <label className="checkrow"><input type="checkbox" checked={superTb} onChange={e => setSuperTb(e.target.checked)} /> O 3º set foi super tie-break</label>
+      <label className="checkrow"><input type="checkbox" checked={wo} onChange={e => setWo(e.target.checked)} /> Vitória por W.O. (perdedor fica com 0)</label>
       {preview && <div className="ptsbox">Vencedor +{preview.winner} · Perdedor +{preview.loser}</div>}
       <div className="form-lbl">DATA</div>
       <input className="date" type="date" value={date} onChange={e => setDate(e.target.value)} />
@@ -206,7 +208,7 @@ function Settings() {
     setSaving(true)
     const { error } = await supabase.rpc('update_settings', {
       p_win_same: +s.win_same, p_loss_same: +s.loss_same, p_win_above: +s.win_above, p_win_below: +s.win_below,
-      p_loss_extra: +s.loss_extra, p_super_bonus: +s.super_bonus, p_start_points: +s.start_points, p_rematch_days: +s.rematch_days,
+      p_loss_extra: +s.loss_extra, p_super_bonus: +s.super_bonus, p_start_points: +s.start_points, p_rematch_days: +s.rematch_days, p_loss_below: +s.loss_below,
     })
     setSaving(false); if (error) return alert(error.message); setOk('Pontuação salva!'); setTimeout(() => setOk(''), 2000)
   }
@@ -220,7 +222,8 @@ function Settings() {
         {F('loss_same', 'Derrota (mesma cat.)')}
         {F('win_above', 'Vencer de cima')}
         {F('win_below', 'Vencer de baixo')}
-        {F('loss_extra', 'Derrota (extra)')}
+        {F('loss_extra', 'Derrota p/ cima')}
+        {F('loss_below', 'Derrota p/ baixo')}
         {F('super_bonus', 'Bônus super TB')}
         {F('start_points', 'Pontos iniciais')}
         {F('rematch_days', 'Dias entre revanche')}

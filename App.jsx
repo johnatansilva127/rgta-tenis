@@ -26,6 +26,7 @@ export default function App() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS)
   const [screen, setScreen] = useState('home')
   const [viewPlayer, setViewPlayer] = useState(null)
+  const [rankTab, setRankTab] = useState('B')
   const [tick, setTick] = useState(0)
   const [badge, setBadge] = useState(0)
   const chanRef = useRef(null)
@@ -80,7 +81,7 @@ export default function App() {
   const nav = (s) => { setViewPlayer(null); setScreen(s) }
   const openPlayer = (id) => { setViewPlayer(id); setScreen('player') }
   const openNotifs = () => { setViewPlayer(null); setScreen('notifs') }
-  const props = { session, profile, settings, reload: loadProfile, nav, isAdmin, tick, openPlayer, openNotifs, badge }
+  const props = { session, profile, settings, reload: loadProfile, nav, isAdmin, tick, openPlayer, openNotifs, badge, rankTab, setRankTab }
 
   return (
     <Shell>
