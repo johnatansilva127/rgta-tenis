@@ -49,7 +49,7 @@ export default function Ranking({ session, tick, openPlayer, rankTab, setRankTab
           <div className={'rk-row ' + (r.id === session.user.id ? 'me' : '')} key={r.id} onClick={() => openPlayer(r.id)}>
             <div className="rk-pos">{r.position}</div>
             <Avatar name={r.name} url={r.avatar_url} size={34} />
-            <div className="rk-name">{r.name}{r.is_admin && <Icon name="shield" size={13} className="adm-i" />}</div>
+            <div className="rk-name">{r.name}</div>
             {delta(r)}
             <div className="rk-pts">{r.points}</div>
           </div>

@@ -40,7 +40,7 @@ export default function PlayerProfile({ session, playerId, nav, tick }) {
       <div className="scroll">
         <div className="prof-head">
           <Avatar name={p.name} url={p.avatar_url} size={84} style={{ border: '3px solid rgba(255,255,255,.55)' }} />
-          <div className="nm">{p.name}{p.is_admin && <Icon name="shield" size={15} />}</div>
+          <div className="nm">{p.name}</div>
           <div className="cat">Categoria {p.category} · {p.position}º no ranking</div>
         </div>
         <div className="stat-card">

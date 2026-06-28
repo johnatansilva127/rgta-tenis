@@ -25,7 +25,14 @@ export default function Auth() {
     setErr(''); setMsg(''); setLoading(true)
     try {
       if (mode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email: toEmail(email), password })
+        let { error } = await supabase.auth.signInWithPassword({ email: toEmail(email), password })
+        if (error) {
+          const alt = password.trim().toLowerCase()
+          if (alt && alt !== password) {
+            const retry = await supabase.auth.signInWithPassword({ email: toEmail(email), password: alt })
+            error = retry.error
+          }
+        }
         if (error) throw error
       } else {
         if (!name.trim()) throw new Error('Informe seu nome.')

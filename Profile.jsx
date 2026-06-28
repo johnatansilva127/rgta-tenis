@@ -84,7 +84,7 @@ export default function Profile({ session, profile, reload, tick, nav }) {
               <button className="bt" onClick={() => setEdit(false)}>X</button>
             </div>
           ) : (
-            <div className="nm" onClick={startEdit}>{profile.name}{profile.is_admin && <Icon name="shield" size={15} />} <Icon name="pencil" size={15} style={{ opacity: .85 }} /></div>
+            <div className="nm" onClick={startEdit}>{profile.name} <Icon name="pencil" size={15} style={{ opacity: .85 }} /></div>
           )}
           <div className="cat">Categoria {profile.category} · {profile.position}º no ranking</div>
         </div>
