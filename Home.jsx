@@ -25,7 +25,10 @@ export default function Home({ session, profile, nav, isAdmin, openNotifs, badge
     <>
       <div className="topbar">
         <div className="row">
-          <h3>RGTA</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+            <img src="/logo-rgta.png" alt="RGTA" width={34} height={34} style={{ display: 'block', borderRadius: '50%' }} />
+            <h3>RGTA</h3>
+          </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="ic bell" onClick={openNotifs} aria-label="Avisos"><Icon name="bell" size={20} />{badge > 0 && <span className="bdg">{badge}</span>}</button>
             <button className="ic" onClick={() => nav('profile')}><Avatar name={profile?.name} url={profile?.avatar_url} size={34} /></button>

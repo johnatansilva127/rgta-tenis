@@ -90,7 +90,7 @@ export default function App() {
     <Shell>
       <div className="screen">
         <nav className="tabbar">
-          <div className="nav-brand">RG<span>TA</span></div>
+          <div className="nav-brand"><img src="/logo-rgta.png" alt="" width={34} height={34} />RG<span>TA</span></div>
           {tabs.map(t => {
             const active = screen === t.id || (t.id === 'home' && ['notifs', 'player'].includes(screen)) || (t.id === 'profile' && screen === 'legal')
             return (

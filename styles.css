@@ -282,8 +282,9 @@ input.date:focus,.date:focus{border-color:var(--orange);}
   .tabbar button .ti{ width:26px; height:26px; }
   .tabbar button.on{ background:var(--orange-l); }
   .tabbar button.on .ti{ background:transparent; }
-  .nav-brand{ display:block; font-size:23px; font-weight:800; color:var(--ink);
+  .nav-brand{ display:flex; align-items:center; gap:10px; font-size:23px; font-weight:800; color:var(--ink);
     padding:12px 14px 16px; letter-spacing:.5px; }
+  .nav-brand img{ display:block; border-radius:50%; }
   .nav-brand span{ color:var(--orange); }
 
   .content{ order:1; flex:1; min-width:0; }
