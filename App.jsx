@@ -12,6 +12,7 @@ import Notifs from './Notifs.jsx'
 import PlayerProfile from './PlayerProfile.jsx'
 import ConsentGate from './ConsentGate.jsx'
 import Legal from './Legal.jsx'
+import PublicRanking from './PublicRanking.jsx'
 
 const BASE_TABS = [
   { id: 'home', icon: 'home', label: 'Início' },
@@ -31,6 +32,7 @@ export default function App() {
   const [rankTab, setRankTab] = useState('B')
   const [tick, setTick] = useState(0)
   const [badge, setBadge] = useState(0)
+  const [showLogin, setShowLogin] = useState(false)
   const chanRef = useRef(null)
 
   useEffect(() => {
@@ -76,7 +78,13 @@ export default function App() {
   }, [session, loadProfile, loadBadge])
 
   if (session === undefined) return <Shell><div className="screen"><div className="center"><div className="spin" /></div></div></Shell>
-  if (!session) return <Shell><div className="screen"><Auth /></div></Shell>
+  if (!session) return (
+    <Shell><div className="screen">
+      {showLogin
+        ? <Auth onBack={() => setShowLogin(false)} />
+        : <div className="content"><PublicRanking onEnter={() => setShowLogin(true)} /></div>}
+    </div></Shell>
+  )
   if (profile && !profile.consent_at) return <Shell><div className="screen"><ConsentGate onAccepted={loadProfile} /></div></Shell>
 
   const isAdmin = !!profile?.is_admin

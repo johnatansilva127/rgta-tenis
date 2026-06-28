@@ -9,7 +9,7 @@ const toEmail = (v) => {
   return t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '') + '@rgta.app'
 }
 
-export default function Auth() {
+export default function Auth({ onBack }) {
   const [mode, setMode] = useState('login') // login | signup
   const [name, setName] = useState('')
   const [category, setCategory] = useState('C')
@@ -91,6 +91,7 @@ export default function Auth() {
         ? <button className="linkbtn reg" onClick={() => { setMode('signup'); setErr(''); setMsg('') }}>Não tem conta? Cadastre-se</button>
         : <button className="linkbtn" onClick={() => { setMode('login'); setErr(''); setMsg('') }}>Já tenho conta — Entrar</button>}
       <button className="linkbtn" style={{ marginTop: 18, opacity: .85 }} onClick={() => setShowLegal(true)}>Política de Privacidade e Termos</button>
+      {onBack && <button className="linkbtn" onClick={onBack}>← Voltar ao ranking</button>}
     </div>
   )
 }
