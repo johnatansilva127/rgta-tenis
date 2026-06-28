@@ -1,11 +1,16 @@
 import { useEffect, useState, useCallback } from 'react'
 import Icon from './Icon.jsx'
-import { supabase, initials, compatible, calcPoints, MATCH_SELECT } from './supabaseClient'
+import { supabase, initials, compatible, calcPoints, MATCH_SELECT, matchView } from './supabaseClient'
 import Avatar from './Avatar.jsx'
 
 const today = () => new Date().toISOString().slice(0, 10)
 const fmtDate = (d) => { if (!d) return ''; const [y, m, da] = d.split('-'); return `${da}/${m}/${y}` }
-const TABS = [['aprovar', 'Aprovações'], ['jogadores', 'Jogadores'], ['lancar', 'Lançar'], ['partidas', 'Partidas'], ['config', 'Pontuação'], ['logs', 'Logs']]
+function downloadCSV(filename, rows) {
+  const csv = rows.map(r => r.map(c => '"' + String(c ?? '').replace(/"/g, '""') + '"').join(',')).join('\n')
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click()
+}
+const TABS = [['aprovar', 'Aprovações'], ['jogadores', 'Jogadores'], ['lancar', 'Lançar'], ['partidas', 'Partidas'], ['data', 'Por data'], ['config', 'Pontuação'], ['logs', 'Logs']]
 
 export default function Admin({ session, settings, reload, tick }) {
   const [tab, setTab] = useState('aprovar')
@@ -20,6 +25,7 @@ export default function Admin({ session, settings, reload, tick }) {
         {tab === 'jogadores' && <Players session={session} reload={reload} tick={tick} />}
         {tab === 'lancar' && <AddMatch settings={settings} reload={reload} />}
         {tab === 'partidas' && <MatchesAdmin reload={reload} tick={tick} />}
+        {tab === 'data' && <Historico />}
         {tab === 'config' && <Settings />}
         {tab === 'logs' && <Logs tick={tick} />}
       </div>
@@ -78,6 +84,14 @@ function Players({ session, reload, tick }) {
     const { data, error } = await supabase.functions.invoke('admin-reset-password', { body: { user_id: p.id, new_password: np } })
     if (error || !data?.ok) return alert(error?.message || data?.error || 'Erro'); alert(`Senha de ${p.name} redefinida.`)
   }
+  async function exportPlayer(p) {
+    const { data } = await supabase.from('matches').select(MATCH_SELECT)
+      .or(`winner_id.eq.${p.id},loser_id.eq.${p.id}`).eq('status', 'approved').order('played_at', { ascending: true })
+    const mv = (data || []).map(m => matchView(m, p.id))
+    const info = [['Jogador', p.name], ['Categoria', p.category], ['Pontos', p.points], ['Vitorias', p.wins], ['Derrotas', p.losses], ['Posicao', p.position + 'o'], [], ['Data', 'Adversario', 'Resultado', 'Placar', 'Pontos', 'Extra']]
+    const body = mv.map(m => [fmtDate(m.played_at), m.opponent?.name || '', m.result === 'V' ? 'Vitoria' : 'Derrota', m.set_scores, '+' + m.myPoints, m.is_extra ? 'sim' : ''])
+    downloadCSV(`jogador-${p.name}.csv`, [...info, ...body])
+  }
   if (rows === null) return <div className="center"><div className="spin" /></div>
   const filtered = rows.filter(p => p.name.toLowerCase().includes(q.toLowerCase()))
   return (
@@ -103,6 +117,7 @@ function Players({ session, reload, tick }) {
             <div className="adm-actions" style={{ flexWrap: 'wrap' }}>
               <button className="bt" onClick={() => startEdit(p)}>Editar</button>
               <button className="bt" onClick={() => resetPwd(p)}>Redefinir senha</button>
+              <button className="bt" onClick={() => exportPlayer(p)}><Icon name="download" size={14} /> Exportar</button>
               <button className="bt" onClick={() => toggleAdmin(p)}>{p.is_admin ? 'Remover admin' : 'Tornar admin'}</button>
               {p.id !== session.user.id && <button className="bt no" onClick={() => del(p)}>Excluir</button>}
             </div>
@@ -247,6 +262,42 @@ function Logs({ tick }) {
             <div className="sub" style={{ fontSize: 11.5, color: 'var(--ink-2)' }}>{r.actor_name || '—'} · {new Date(r.created_at).toLocaleString('pt-BR')}</div></div>
         </div>
       ))}
+    </div>
+  )
+}
+
+function Historico() {
+  const [date, setDate] = useState(today())
+  const [cat, setCat] = useState('A')
+  const [rows, setRows] = useState(null)
+  useEffect(() => {
+    setRows(null)
+    supabase.rpc('ranking_as_of', { p_date: date }).then(({ data }) =>
+      setRows((data || []).filter(r => r.category === cat).sort((a, b) => a.pos - b.pos)))
+  }, [date, cat])
+  function exportar() {
+    const body = (rows || []).map(r => [r.pos, r.name, r.points, r.wins, r.losses])
+    downloadCSV(`ranking-${cat}-ate-${date}.csv`, [['Posicao', 'Jogador', 'Pontos', 'Vitorias', 'Derrotas'], ...body])
+  }
+  return (
+    <div className="sec">
+      <div className="form-lbl">RANKING ATÉ A DATA</div>
+      <input className="date" type="date" value={date} onChange={e => setDate(e.target.value)} />
+      <div className="tabs" style={{ marginTop: 12 }}>
+        {['A', 'B', 'C'].map(c => <button key={c} className={cat === c ? 'on' : ''} onClick={() => setCat(c)}>CAT. {c}</button>)}
+      </div>
+      {rows === null && <div className="center"><div className="spin" /></div>}
+      {rows && <>
+        <button className="bt" style={{ margin: '12px 0' }} onClick={exportar}><Icon name="download" size={14} /> Exportar este ranking (CSV)</button>
+        {rows.map(r => (
+          <div className="rk-row" key={r.id} style={{ cursor: 'default' }}>
+            <div className="rk-pos">{r.pos}</div>
+            <div className="rk-name" style={{ marginLeft: 8 }}>{r.name}</div>
+            <div className="rk-pts">{r.points}</div>
+          </div>
+        ))}
+        {rows.length === 0 && <div className="center">Sem dados nesta categoria.</div>}
+      </>}
     </div>
   )
 }
