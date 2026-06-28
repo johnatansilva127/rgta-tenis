@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from './supabaseClient'
 import Logo from './Logo.jsx'
+import Legal from './Legal.jsx'
 
 export default function Auth() {
   const [mode, setMode] = useState('login') // login | signup
@@ -11,6 +12,7 @@ export default function Auth() {
   const [err, setErr] = useState('')
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showLegal, setShowLegal] = useState(false)
 
   async function submit(e) {
     e.preventDefault()
@@ -37,6 +39,8 @@ export default function Auth() {
       setLoading(false)
     }
   }
+
+  if (showLegal) return <Legal onClose={() => setShowLegal(false)} />
 
   return (
     <div className="login">
@@ -73,6 +77,7 @@ export default function Auth() {
       {mode === 'login'
         ? <button className="linkbtn reg" onClick={() => { setMode('signup'); setErr(''); setMsg('') }}>Não tem conta? Cadastre-se</button>
         : <button className="linkbtn" onClick={() => { setMode('login'); setErr(''); setMsg('') }}>Já tenho conta — Entrar</button>}
+      <button className="linkbtn" style={{ marginTop: 18, opacity: .85 }} onClick={() => setShowLegal(true)}>Política de Privacidade e Termos</button>
     </div>
   )
 }

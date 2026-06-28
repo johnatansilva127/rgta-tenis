@@ -5,7 +5,7 @@ import Avatar from './Avatar.jsx'
 
 const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 
-export default function Profile({ session, profile, reload, tick }) {
+export default function Profile({ session, profile, reload, tick, nav }) {
   const [matches, setMatches] = useState(null)
   const [edit, setEdit] = useState(false)
   const [name, setName] = useState('')
@@ -28,6 +28,23 @@ export default function Profile({ session, profile, reload, tick }) {
   const monthly = buildMonthly(matches || [])
 
   async function logout() { await supabase.auth.signOut() }
+  async function exportData() {
+    const id = session.user.id
+    const { data } = await supabase.from('matches').select(MATCH_SELECT).or(`winner_id.eq.${id},loser_id.eq.${id}`).order('played_at')
+    const payload = {
+      perfil: { nome: profile.name, categoria: profile.category, pontos: profile.points, vitorias: profile.wins, derrotas: profile.losses },
+      partidas: (data || []).map(m => matchView(m, id)).map(m => ({ data: m.played_at, adversario: m.opponent?.name, resultado: m.result === 'V' ? 'Vitoria' : 'Derrota', placar: m.set_scores, pontos: m.myPoints, status: m.status })),
+      exportado_em: new Date().toISOString(),
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'meus-dados-rgta.json'; a.click()
+  }
+  async function requestDeletion() {
+    if (!confirm('Deseja solicitar a exclusão da sua conta? O administrador será avisado e fará a remoção dos seus dados.')) return
+    const { error } = await supabase.rpc('request_deletion', { p_reason: null })
+    if (error) return alert(error.message)
+    alert('Pedido enviado. O administrador foi avisado e fará a exclusão.')
+  }
   function startEdit() { setName(profile.name); setEdit(true) }
   async function saveName() {
     setBusy(true)
@@ -81,6 +98,15 @@ export default function Profile({ session, profile, reload, tick }) {
             <div><div className="k">Total de jogos</div><div className="v">{total}</div></div>
           </div>
           <Bars data={monthly} />
+        </div>
+        <div className="priv-card">
+          <h4>Privacidade e dados (LGPD)</h4>
+          <div className="small">Seus direitos sobre seus dados.</div>
+          <div className="priv-actions">
+            <button className="bt" onClick={() => nav('legal')}>Ver Política de Privacidade e Termos</button>
+            <button className="bt" onClick={exportData}><Icon name="download" size={14} /> Baixar meus dados</button>
+            <button className="bt no" onClick={requestDeletion}><Icon name="trash" size={14} /> Solicitar exclusão da conta</button>
+          </div>
         </div>
         <div style={{ height: 12 }} />
       </div>

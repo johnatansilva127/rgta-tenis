@@ -10,6 +10,8 @@ import History from './History.jsx'
 import Admin from './Admin.jsx'
 import Notifs from './Notifs.jsx'
 import PlayerProfile from './PlayerProfile.jsx'
+import ConsentGate from './ConsentGate.jsx'
+import Legal from './Legal.jsx'
 
 const BASE_TABS = [
   { id: 'home', icon: 'home', label: 'Início' },
@@ -75,6 +77,7 @@ export default function App() {
 
   if (session === undefined) return <Shell><div className="screen"><div className="center"><div className="spin" /></div></div></Shell>
   if (!session) return <Shell><div className="screen"><Auth /></div></Shell>
+  if (profile && !profile.consent_at) return <Shell><div className="screen"><ConsentGate onAccepted={loadProfile} /></div></Shell>
 
   const isAdmin = !!profile?.is_admin
   const tabs = isAdmin ? [...BASE_TABS, ADMIN_TAB] : BASE_TABS
@@ -89,7 +92,7 @@ export default function App() {
         <nav className="tabbar">
           <div className="nav-brand">RG<span>TA</span></div>
           {tabs.map(t => {
-            const active = screen === t.id || (t.id === 'home' && ['notifs', 'player'].includes(screen))
+            const active = screen === t.id || (t.id === 'home' && ['notifs', 'player'].includes(screen)) || (t.id === 'profile' && screen === 'legal')
             return (
               <button key={t.id} className={active ? 'on' : ''} onClick={() => nav(t.id)}>
                 <span className="ti"><Icon name={t.icon} size={22} /></span>{t.label}
@@ -106,6 +109,7 @@ export default function App() {
           {screen === 'admin' && isAdmin && <Admin {...props} />}
           {screen === 'notifs' && <Notifs {...props} />}
           {screen === 'player' && <PlayerProfile {...props} playerId={viewPlayer} />}
+          {screen === 'legal' && <Legal onClose={() => nav('profile')} />}
         </div>
       </div>
     </Shell>
