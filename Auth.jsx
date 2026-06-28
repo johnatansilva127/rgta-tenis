@@ -3,6 +3,12 @@ import { supabase } from './supabaseClient'
 import Logo from './Logo.jsx'
 import Legal from './Legal.jsx'
 
+const toEmail = (v) => {
+  const t = (v || '').trim()
+  if (t.includes('@')) return t
+  return t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '') + '@rgta.app'
+}
+
 export default function Auth() {
   const [mode, setMode] = useState('login') // login | signup
   const [name, setName] = useState('')
@@ -19,18 +25,18 @@ export default function Auth() {
     setErr(''); setMsg(''); setLoading(true)
     try {
       if (mode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        const { error } = await supabase.auth.signInWithPassword({ email: toEmail(email), password })
         if (error) throw error
       } else {
         if (!name.trim()) throw new Error('Informe seu nome.')
         if (password.length < 6) throw new Error('A senha precisa ter ao menos 6 caracteres.')
         // Cadastro via Edge Function (cria o jogador ja confirmado, sem e-mail).
         const { data, error } = await supabase.functions.invoke('signup', {
-          body: { email, password, name: name.trim(), category },
+          body: { email: toEmail(email), password, name: name.trim(), category },
         })
         if (error) throw new Error('Nao foi possivel concluir o cadastro. Tente novamente.')
         if (!data?.ok) throw new Error(data?.error || 'Nao foi possivel concluir o cadastro.')
-        const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
+        const { error: signInErr } = await supabase.auth.signInWithPassword({ email: toEmail(email), password })
         if (signInErr) throw signInErr
       }
     } catch (e) {
@@ -67,7 +73,7 @@ export default function Auth() {
             </div>
           </>
         )}
-        <div className="field">✉️<input type="email" required placeholder="E-mail" value={email} onChange={e => setEmail(e.target.value)} /></div>
+        <div className="field">👤<input type="text" required placeholder="Seu nome (ou e-mail)" value={email} onChange={e => setEmail(e.target.value)} /></div>
         <div className="field">🔒<input type="password" required placeholder="Senha" value={password} onChange={e => setPassword(e.target.value)} /></div>
         <button className="btn-primary" disabled={loading}>
           {loading ? 'Aguarde…' : (mode === 'login' ? 'Entrar' : 'Criar conta')}
