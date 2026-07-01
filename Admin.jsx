@@ -10,7 +10,7 @@ function downloadCSV(filename, rows) {
   const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click()
 }
-const TABS = [['aprovar', 'Aprovações'], ['jogadores', 'Jogadores'], ['lancar', 'Lançar'], ['partidas', 'Partidas'], ['data', 'Por data'], ['config', 'Pontuação'], ['logs', 'Logs']]
+const TABS = [['aprovar', 'Aprovações'], ['jogadores', 'Jogadores'], ['novo', 'Novo jogador'], ['lancar', 'Lançar'], ['partidas', 'Partidas'], ['data', 'Por data'], ['config', 'Pontuação'], ['logs', 'Logs']]
 
 export default function Admin({ session, settings, reload, tick }) {
   const [tab, setTab] = useState('aprovar')
@@ -23,6 +23,7 @@ export default function Admin({ session, settings, reload, tick }) {
       <div className="scroll">
         {tab === 'aprovar' && <Approvals reload={reload} tick={tick} />}
         {tab === 'jogadores' && <Players session={session} reload={reload} tick={tick} />}
+        {tab === 'novo' && <AddPlayer reload={reload} />}
         {tab === 'lancar' && <AddMatch settings={settings} reload={reload} />}
         {tab === 'partidas' && <MatchesAdmin reload={reload} tick={tick} />}
         {tab === 'data' && <Historico />}
@@ -175,26 +176,42 @@ function AddMatch({ settings, reload }) {
 }
 
 function MatchesAdmin({ reload, tick }) {
-  const [rows, setRows] = useState(null); const [players, setPlayers] = useState([]); const [editing, setEditing] = useState(null); const [form, setForm] = useState({})
-  const load = useCallback(() => {
+  const [rows, setRows] = useState(null); const [players, setPlayers] = useState([]); const [editing, setEditing] = useState(null); const [form, setForm] = useState({}); const [q, setQ] = useState('')
+  const loadRecent = useCallback(() => {
     supabase.from('matches').select(MATCH_SELECT).eq('status', 'approved').order('played_at', { ascending: false }).limit(60).then(({ data }) => setRows(data || []))
-    supabase.from('profiles').select('id,name,category').eq('is_player', true).order('name').then(({ data }) => setPlayers(data || []))
   }, [])
-  useEffect(() => { load() }, [load, tick])
-  function startEdit(m) { setEditing(m.id); setForm({ winner: m.winner_id, loser: m.loser_id, scores: m.set_scores, superTb: m.went_super }) }
+  useEffect(() => { supabase.from('profiles').select('id,name,category').eq('is_player', true).order('name').then(({ data }) => setPlayers(data || [])) }, [])
+  useEffect(() => { loadRecent() }, [loadRecent, tick])
+  async function doSearch() {
+    const term = q.trim().toLowerCase()
+    if (!term) return loadRecent()
+    const ids = players.filter(p => p.name.toLowerCase().includes(term)).map(p => p.id)
+    if (ids.length === 0) return setRows([])
+    setRows(null)
+    const list = ids.join(',')
+    const { data } = await supabase.from('matches').select(MATCH_SELECT)
+      .or(`winner_id.in.(${list}),loser_id.in.(${list})`).order('played_at', { ascending: false }).limit(400)
+    setRows(data || [])
+  }
+  function startEdit(m) { setEditing(m.id); setForm({ winner: m.winner_id, loser: m.loser_id, scores: m.set_scores, superTb: m.went_super, played_at: m.played_at }) }
   async function save(m) {
-    const { error } = await supabase.rpc('admin_edit_match', { p_match: m.id, p_winner: form.winner, p_loser: form.loser, p_set_scores: form.scores, p_went_super: !!form.superTb })
-    if (error) return alert(error.message); setEditing(null); await reload(); load()
+    const { error } = await supabase.rpc('admin_edit_match', { p_match: m.id, p_winner: form.winner, p_loser: form.loser, p_set_scores: form.scores, p_went_super: !!form.superTb, p_played_at: form.played_at || null })
+    if (error) return alert(error.message); setEditing(null); await reload(); doSearch()
   }
   async function del(m) {
     if (!confirm('Excluir esta partida? Os pontos serão revertidos.')) return
-    const { error } = await supabase.rpc('admin_delete_match', { p_match: m.id }); if (error) return alert(error.message); await reload(); load()
+    const { error } = await supabase.rpc('admin_delete_match', { p_match: m.id }); if (error) return alert(error.message); await reload(); doSearch()
   }
-  if (rows === null) return <div className="center"><div className="spin" /></div>
-  if (rows.length === 0) return <div className="center">Nenhuma partida aprovada ainda.</div>
   return (
     <div className="sec">
-      {rows.map(m => (
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <input className="date" placeholder="Buscar por jogador (todo o histórico)…" value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') doSearch() }} style={{ flex: 1 }} />
+        <button className="bt" onClick={doSearch}><Icon name="search" size={14} /> Buscar</button>
+        {q && <button className="bt" onClick={() => { setQ(''); loadRecent() }}>Limpar</button>}
+      </div>
+      {rows === null && <div className="center"><div className="spin" /></div>}
+      {rows && rows.length === 0 && <div className="center">Nenhuma partida encontrada.</div>}
+      {rows && rows.map(m => (
         <div className="adm-card" key={m.id}>
           <div className="adm-line"><b>{m.winner?.name}</b> <span className="vs">venceu</span> {m.loser?.name}</div>
           <div className="adm-sub">{fmtDate(m.played_at)} · {m.set_scores}{m.went_super ? ' · super TB' : ''} · +{m.winner_points}/+{m.loser_points}</div>
@@ -203,6 +220,7 @@ function MatchesAdmin({ reload, tick }) {
               <label>Vencedor<select value={form.winner} onChange={e => setForm(f => ({ ...f, winner: e.target.value }))}>{players.map(p => <option key={p.id} value={p.id}>{p.name} ({p.category})</option>)}</select></label>
               <label>Perdedor<select value={form.loser} onChange={e => setForm(f => ({ ...f, loser: e.target.value }))}>{players.map(p => <option key={p.id} value={p.id}>{p.name} ({p.category})</option>)}</select></label>
               <label style={{ gridColumn: '1 / -1' }}>Placar<input value={form.scores} onChange={e => setForm(f => ({ ...f, scores: e.target.value }))} /></label>
+              <label style={{ gridColumn: '1 / -1' }}>Data<input type="date" value={form.played_at || ''} onChange={e => setForm(f => ({ ...f, played_at: e.target.value }))} /></label>
               <label className="checkrow" style={{ gridColumn: '1 / -1' }}><input type="checkbox" checked={!!form.superTb} onChange={e => setForm(f => ({ ...f, superTb: e.target.checked }))} /> Super tie-break</label>
               <div className="adm-actions" style={{ gridColumn: '1 / -1' }}><button className="bt ok" onClick={() => save(m)}>Salvar</button><button className="bt" onClick={() => setEditing(null)}>Cancelar</button></div>
             </div>
@@ -211,6 +229,68 @@ function MatchesAdmin({ reload, tick }) {
           )}
         </div>
       ))}
+    </div>
+  )
+}
+
+function AddPlayer({ reload }) {
+  const [name, setName] = useState('')
+  const [category, setCategory] = useState('C')
+  const [password, setPassword] = useState('')
+  const [file, setFile] = useState(null)
+  const [preview, setPreview] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [result, setResult] = useState(null)
+  const [err, setErr] = useState('')
+
+  function onFile(e) {
+    const f = e.target.files?.[0]
+    if (!f) { setFile(null); setPreview(''); return }
+    setFile(f); setPreview(URL.createObjectURL(f))
+  }
+  async function toBase64Square(f) {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(f) })
+    const S = 512, c = document.createElement('canvas'); c.width = S; c.height = S
+    const ctx = c.getContext('2d')
+    const side = Math.min(img.width, img.height)
+    ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, S, S)
+    return c.toDataURL('image/jpeg', 0.85).split(',')[1]
+  }
+  async function save() {
+    setErr(''); setResult(null)
+    if (!name.trim()) return setErr('Informe o nome.')
+    if (password && password.length < 6) return setErr('A senha precisa ter ao menos 6 caracteres.')
+    setSaving(true)
+    try {
+      let avatar_base64 = null
+      if (file) avatar_base64 = await toBase64Square(file)
+      const { data, error } = await supabase.functions.invoke('admin-add-player', {
+        body: { name: name.trim(), category, password: password || null, avatar_base64, avatar_ext: 'jpg' },
+      })
+      if (error) throw new Error('Falha ao criar. Tente novamente.')
+      if (!data?.ok) throw new Error(data?.error || 'Falha ao criar.')
+      setResult(data); setName(''); setPassword(''); setFile(null); setPreview('')
+      await reload()
+    } catch (e) { setErr(e.message) } finally { setSaving(false) }
+  }
+  return (
+    <div className="sec">
+      {err && <div className="err" style={{ color: '#a32', background: 'rgba(224,74,63,.1)', border: '1px solid rgba(224,74,63,.4)' }}>{err}</div>}
+      {result && <div className="ptsbox" style={{ marginBottom: 10 }}>Jogador criado! Login: <b>{result.login}</b> · Senha: <b>{result.password}</b></div>}
+      <div className="form-lbl">NOME</div>
+      <input className="date" placeholder="Nome do jogador" value={name} onChange={e => setName(e.target.value)} />
+      <div className="form-lbl">CATEGORIA</div>
+      <div className="sel"><select value={category} onChange={e => setCategory(e.target.value)}><option value="A">A</option><option value="B">B</option><option value="C">C</option></select></div>
+      <div className="form-lbl">SENHA (opcional — padrão: nome + 123)</div>
+      <input className="date" placeholder="deixe em branco para nome+123" value={password} onChange={e => setPassword(e.target.value)} />
+      <div className="form-lbl">FOTO (opcional)</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {preview
+          ? <img src={preview} alt="" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover' }} />
+          : <div className="ava" style={{ width: 56, height: 56 }}><Icon name="camera" size={20} /></div>}
+        <input type="file" accept="image/*" onChange={onFile} />
+      </div>
+      <button className="cta" style={{ marginTop: 20 }} disabled={saving} onClick={save}>{saving ? 'Criando…' : 'Criar jogador'}</button>
     </div>
   )
 }
