@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Icon from './Icon.jsx'
-import { supabase, matchView, MATCH_SELECT, uploadAvatar } from './supabaseClient'
+import { supabase, matchView, MATCH_SELECT, uploadAvatar, enablePush, disablePush, pushStatus } from './supabaseClient'
 import Avatar from './Avatar.jsx'
 
 const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
@@ -10,6 +10,7 @@ export default function Profile({ session, profile, reload, tick, nav }) {
   const [edit, setEdit] = useState(false)
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
+  const [pstat, setPstat] = useState('off')
   const fileRef = useRef(null)
 
   useEffect(() => {
@@ -19,6 +20,8 @@ export default function Profile({ session, profile, reload, tick, nav }) {
       .order('played_at', { ascending: false })
       .then(({ data }) => setMatches((data || []).map(m => matchView(m, id))))
   }, [session, tick])
+
+  useEffect(() => { pushStatus().then(setPstat) }, [])
 
   if (!profile) return <div className="center"><div className="spin" /></div>
 
@@ -63,6 +66,37 @@ export default function Profile({ session, profile, reload, tick, nav }) {
       await reload()
     } catch (err) { alert(err.message) } finally { setBusy(false) }
   }
+  async function shareCard() {
+    const W = 1080, H = 1350
+    const c = document.createElement('canvas'); c.width = W; c.height = H
+    const ctx = c.getContext('2d')
+    const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#F4922E'); g.addColorStop(1, '#B8500C')
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H)
+    ctx.textAlign = 'center'
+    try { const logo = await loadImg('/logo-rgta.png'); ctx.drawImage(logo, (W - 300) / 2, 110, 300, 300) } catch (_e) {}
+    ctx.fillStyle = '#fff'; ctx.font = "800 66px 'Plus Jakarta Sans', Arial"; ctx.fillText('RGTA', W / 2, 500)
+    ctx.font = "600 26px 'Plus Jakarta Sans', Arial"; ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillText('RANKING GERAL DE TENIS AMADOR', W / 2, 545)
+    ctx.fillStyle = '#fff'; ctx.font = "800 76px 'Plus Jakarta Sans', Arial"; ctx.fillText(profile.name, W / 2, 720)
+    ctx.font = "700 40px 'Plus Jakarta Sans', Arial"; ctx.fillStyle = 'rgba(255,255,255,.95)'
+    ctx.fillText(profile.position + 'o - Categoria ' + profile.category, W / 2, 800)
+    ctx.font = "900 240px 'Plus Jakarta Sans', Arial"; ctx.fillStyle = '#fff'; ctx.fillText(String(profile.points), W / 2, 1080)
+    ctx.font = "700 44px 'Plus Jakarta Sans', Arial"; ctx.fillText('PONTOS', W / 2, 1145)
+    ctx.font = "500 36px 'Plus Jakarta Sans', Arial"; ctx.fillStyle = 'rgba(255,255,255,.9)'
+    ctx.fillText(profile.wins + ' vitorias - ' + profile.losses + ' derrotas', W / 2, 1220)
+    ctx.font = "600 30px 'Plus Jakarta Sans', Arial"; ctx.fillStyle = 'rgba(255,255,255,.95)'; ctx.fillText('top10rgta.com.br', W / 2, 1290)
+    const blob = await new Promise(res => c.toBlob(res, 'image/png'))
+    const file = new File([blob], 'rgta-posicao.png', { type: 'image/png' })
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: 'Minha posicao no RGTA' }); return } catch (_e) {}
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'rgta-posicao.png'; a.click()
+  }
+  async function togglePush() {
+    try {
+      if (pstat === 'on') { await disablePush(); setPstat('off') }
+      else { await enablePush(); setPstat('on'); alert('Notificacoes ativadas!') }
+    } catch (e) { alert(e.message) }
+  }
 
   return (
     <>
@@ -87,6 +121,12 @@ export default function Profile({ session, profile, reload, tick, nav }) {
             <div className="nm" onClick={startEdit}>{profile.name} <Icon name="pencil" size={15} style={{ opacity: .85 }} /></div>
           )}
           <div className="cat">Categoria {profile.category} · {profile.position}º no ranking</div>
+        </div>
+        <div className="sec" style={{ paddingBottom: 0 }}>
+          <button className="cta" onClick={shareCard}><Icon name="share" size={18} /> Compartilhar minha posição</button>
+          {pstat !== 'unsupported' && <button className="cta ghost" style={{ marginTop: 10 }} onClick={togglePush}>
+            <Icon name="bell" size={18} /> {pstat === 'on' ? 'Desativar notificações' : pstat === 'denied' ? 'Ativar nas config. do navegador' : 'Ativar notificações'}
+          </button>}
         </div>
         <div className="stat-card">
           <div className="stat-grid">
@@ -143,3 +183,5 @@ function buildMonthly(matches) {
   for (const m of matches) { const key = (m.played_at || '').slice(0, 7); if (key in idx) out[idx[key]].v += m.myPoints }
   return out
 }
+
+function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = rej; i.src = src }) }

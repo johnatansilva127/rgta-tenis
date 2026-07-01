@@ -59,3 +59,45 @@ export async function uploadAvatar(userId, file) {
   const { data } = supabase.storage.from('avatars').getPublicUrl(path)
   return data.publicUrl
 }
+
+// ===== Push (Web Push) =====
+export const VAPID_PUBLIC_KEY = 'BO6LCPc1aYzPxYErIH9gpPlYbZHs6FfAK56bYhBCDHuRMXE3e_lOXtOxLbvnK0c9dEnS4pHgkEeUrf7kksGF6AA'
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const raw = atob(base64)
+  const arr = new Uint8Array(raw.length)
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i)
+  return arr
+}
+export function pushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
+}
+export async function pushStatus() {
+  if (!pushSupported()) return 'unsupported'
+  if (Notification.permission === 'denied') return 'denied'
+  try {
+    const reg = await navigator.serviceWorker.ready
+    const sub = await reg.pushManager.getSubscription()
+    return sub ? 'on' : 'off'
+  } catch (_e) { return 'off' }
+}
+export async function enablePush() {
+  if (!pushSupported()) throw new Error('Seu navegador não suporta notificações.')
+  const perm = await Notification.requestPermission()
+  if (perm !== 'granted') throw new Error('Permissão negada. Ative nas configurações do navegador.')
+  const reg = await navigator.serviceWorker.ready
+  let sub = await reg.pushManager.getSubscription()
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) })
+  const j = sub.toJSON()
+  const { error } = await supabase.rpc('save_push_subscription', { p_endpoint: sub.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth })
+  if (error) throw error
+  return true
+}
+export async function disablePush() {
+  try {
+    const reg = await navigator.serviceWorker.ready
+    const sub = await reg.pushManager.getSubscription()
+    if (sub) { await supabase.rpc('delete_push_subscription', { p_endpoint: sub.endpoint }); await sub.unsubscribe() }
+  } catch (_e) {}
+}

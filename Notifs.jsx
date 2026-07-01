@@ -8,6 +8,7 @@ const ICON = { confirm_request: 'userCheck', confirmed: 'check', disputed: 'aler
 export default function Notifs({ session, nav, tick }) {
   const [confirms, setConfirms] = useState(null)
   const [notes, setNotes] = useState(null)
+  const [chals, setChals] = useState(null)
   const [busy, setBusy] = useState('')
 
   const load = useCallback(() => {
@@ -18,7 +19,13 @@ export default function Notifs({ session, nav, tick }) {
       .then(({ data }) => setConfirms((data || []).map(m => matchView(m, id))))
     supabase.from('notifications').select('*').eq('user_id', id).order('created_at', { ascending: false }).limit(40)
       .then(({ data }) => setNotes(data || []))
+    supabase.from('challenges')
+      .select('*, challenger:challenger_id(name,avatar_url,category), challenged:challenged_id(name,avatar_url,category)')
+      .eq('status', 'pending').order('created_at', { ascending: false })
+      .then(({ data }) => setChals(data || []))
   }, [session])
+  async function respond(id, accept) { const { error } = await supabase.rpc('respond_challenge', { p_id: id, p_accept: accept }); if (error) return alert(error.message); load() }
+  async function cancelC(id) { const { error } = await supabase.rpc('cancel_challenge', { p_id: id }); if (error) return alert(error.message); load() }
 
   useEffect(() => { load() }, [load, tick])
   useEffect(() => { supabase.rpc('mark_notifications_read') }, [])
@@ -39,6 +46,26 @@ export default function Notifs({ session, nav, tick }) {
       </div></div>
       <div className="scroll">
         <div className="sec">
+          <h4>Desafios</h4>
+          {chals === null && <div className="center"><div className="spin" /></div>}
+          {chals && chals.length === 0 && <div style={{ color: 'var(--ink-2)', fontSize: 13 }}>Nenhum desafio no momento.</div>}
+          {chals && chals.map(c => {
+            const incoming = c.challenged_id === session.user.id
+            const other = incoming ? c.challenger : c.challenged
+            return (
+              <div className="adm-card" key={c.id}>
+                <div className="adm-line"><Avatar name={other?.name} url={other?.avatar_url} size={30} /> {incoming ? <><b>{other?.name}</b> te desafiou</> : <>Você desafiou <b>{other?.name}</b></>}</div>
+                {c.message && <div className="adm-sub">"{c.message}"</div>}
+                <div className="adm-actions">
+                  {incoming
+                    ? <><button className="bt ok" onClick={() => respond(c.id, true)}>Aceitar</button><button className="bt no" onClick={() => respond(c.id, false)}>Recusar</button></>
+                    : <button className="bt no" onClick={() => cancelC(c.id)}>Cancelar</button>}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        <div className="sec" style={{ paddingTop: 0 }}>
           <h4>Para confirmar</h4>
           {confirms === null && <div className="center"><div className="spin" /></div>}
           {confirms && confirms.length === 0 && <div style={{ color: 'var(--ink-2)', fontSize: 13 }}>Nada para confirmar agora.</div>}

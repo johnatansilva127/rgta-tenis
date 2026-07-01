@@ -21,6 +21,11 @@ export default function Home({ session, profile, nav, isAdmin, openNotifs, badge
       .then(({ data }) => setLast((data || []).map(m => matchView(m, id))))
   }, [session, tick])
 
+  const [league, setLeague] = useState(null)
+  useEffect(() => {
+    supabase.rpc('recent_results', { p_limit: 12 }).then(({ data }) => setLeague(data || []))
+  }, [tick])
+
   return (
     <>
       <div className="topbar">
@@ -61,7 +66,19 @@ export default function Home({ session, profile, nav, isAdmin, openNotifs, badge
             </div>
           ))}
         </div>
+        <div className="sec" style={{ paddingTop: 0 }}>
+          <h4>Últimos jogos da liga</h4>
+          {league === null && <div className="center"><div className="spin" /></div>}
+          {league && league.map(m => (
+            <div className="feed-row" key={m.id}>
+              <Avatar name={m.winner_name} url={m.winner_avatar} size={30} />
+              <div className="feed-txt"><b>{m.winner_name}</b> venceu {m.loser_name}<div className="sub">{m.set_scores}{m.went_super ? ' · STB' : ''} · {fmtd(m.played_at)}</div></div>
+            </div>
+          ))}
+        </div>
       </div>
     </>
   )
 }
+
+function fmtd(d) { if (!d) return ''; const [y, m, day] = d.split('-'); return `${day}/${m}` }

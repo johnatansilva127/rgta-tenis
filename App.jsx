@@ -13,6 +13,7 @@ import PlayerProfile from './PlayerProfile.jsx'
 import ConsentGate from './ConsentGate.jsx'
 import Legal from './Legal.jsx'
 import PublicRanking from './PublicRanking.jsx'
+import InstallBanner from './InstallBanner.jsx'
 
 const BASE_TABS = [
   { id: 'home', icon: 'home', label: 'Início' },
@@ -125,5 +126,5 @@ export default function App() {
 }
 
 function Shell({ children }) {
-  return <div className="app-shell"><div className="phone">{children}</div></div>
+  return <div className="app-shell"><div className="phone">{children}</div><InstallBanner /></div>
 }

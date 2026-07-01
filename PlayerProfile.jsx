@@ -1,14 +1,23 @@
 import { useEffect, useState } from 'react'
-import { supabase, matchView, MATCH_SELECT } from './supabaseClient'
+import { supabase, matchView, MATCH_SELECT, compatible } from './supabaseClient'
 import Avatar from './Avatar.jsx'
 import Icon from './Icon.jsx'
 
 const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 
-export default function PlayerProfile({ session, playerId, nav, tick }) {
+export default function PlayerProfile({ session, profile, playerId, nav, tick }) {
   const [p, setP] = useState(null)
   const [matches, setMatches] = useState(null)
   const me = session.user.id
+  const [challenging, setChallenging] = useState(false)
+  async function challenge(pl) {
+    const msg = prompt('Enviar desafio para ' + pl.name + '? (mensagem opcional)', '')
+    if (msg === null) return
+    setChallenging(true)
+    const { error } = await supabase.rpc('create_challenge', { p_opponent: pl.id, p_message: msg || null })
+    setChallenging(false)
+    alert(error ? error.message : 'Desafio enviado! Ele vai receber um aviso.')
+  }
 
   useEffect(() => {
     supabase.from('rankings').select('*').eq('id', playerId).single().then(({ data }) => setP(data))
@@ -61,6 +70,11 @@ export default function PlayerProfile({ session, playerId, nav, tick }) {
               <span style={{ color: 'var(--up)' }}>{myWins}</span> — <span style={{ color: 'var(--down)' }}>{theirWins}</span>
             </div>
             <div className="k">{h2h.length} {h2h.length === 1 ? 'confronto' : 'confrontos'}</div>
+          </div>
+        )}
+        {!isMe && compatible(profile?.category, p.category) && (
+          <div className="sec" style={{ paddingBottom: 0 }}>
+            <button className="cta" disabled={challenging} onClick={() => challenge(p)}><Icon name="swords" size={18} /> Desafiar {p.name.split(' ')[0]}</button>
           </div>
         )}
         <div className="sec"><h4>Partidas recentes</h4>
