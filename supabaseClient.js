@@ -34,7 +34,7 @@ export function calcPoints(cw, cl, wentSuper, s = DEFAULT_SETTINGS, wo = false) 
 }
 
 export const MATCH_SELECT =
-  'id,set_scores,went_super,is_extra,winner_points,loser_points,status,played_at,created_by,winner_id,loser_id,winner:winner_id(name,category,avatar_url),loser:loser_id(name,category,avatar_url)'
+  'id,set_scores,went_super,is_extra,winner_points,loser_points,status,played_at,created_by,proof_url,winner_id,loser_id,winner:winner_id(name,category,avatar_url),loser:loser_id(name,category,avatar_url)'
 
 export function matchView(m, myId) {
   const iWon = m.winner_id === myId
@@ -44,7 +44,7 @@ export function matchView(m, myId) {
     opponentId: iWon ? m.loser_id : m.winner_id,
     myPoints: iWon ? m.winner_points : m.loser_points,
     status: m.status, set_scores: m.set_scores, went_super: m.went_super,
-    is_extra: m.is_extra, played_at: m.played_at, created_by: m.created_by,
+    is_extra: m.is_extra, played_at: m.played_at, created_by: m.created_by, proof_url: m.proof_url,
   }
 }
 
@@ -57,6 +57,22 @@ export async function uploadAvatar(userId, file) {
   const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
   if (error) throw error
   const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+  return data.publicUrl
+}
+
+// Sobe a foto comprovante do jogo (reduzida) e devolve a URL publica
+export async function uploadProof(userId, file) {
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file) })
+  const MAX = 1400
+  let w = img.width, h = img.height
+  if (Math.max(w, h) > MAX) { const sc = MAX / Math.max(w, h); w = Math.round(w * sc); h = Math.round(h * sc) }
+  const c = document.createElement('canvas'); c.width = w; c.height = h
+  c.getContext('2d').drawImage(img, 0, 0, w, h)
+  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.82))
+  const path = userId + '/proof-' + Date.now() + '.jpg'
+  const { error } = await supabase.storage.from('proofs').upload(path, blob, { contentType: 'image/jpeg', upsert: true })
+  if (error) throw error
+  const { data } = supabase.storage.from('proofs').getPublicUrl(path)
   return data.publicUrl
 }
 

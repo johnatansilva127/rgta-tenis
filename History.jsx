@@ -45,7 +45,7 @@ export default function History({ session, tick }) {
             </div>
             <div>
               <div className="nm">vs. {m.opponent?.name || 'Adversário'}{m.is_extra ? ' · extra' : ''}</div>
-              <div className="sub">{m.set_scores}{m.went_super ? ' · STB' : ''} · {fmt(m.played_at)}</div>
+              <div className="sub">{m.set_scores}{m.went_super ? ' · STB' : ''} · {fmt(m.played_at)}{m.proof_url ? <> · <a href={m.proof_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--orange-d)', fontWeight: 700 }}>foto</a></> : ''}</div>
             </div>
             {badge(m)}
           </div>

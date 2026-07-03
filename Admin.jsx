@@ -53,6 +53,7 @@ function Approvals({ reload, tick }) {
         <div className="adm-card" key={m.id}>
           <div className="adm-line"><b>{m.winner?.name}</b> <span className="tag">{m.winner?.category}</span> <span className="vs">venceu</span> {m.loser?.name} <span className="tag">{m.loser?.category}</span>{m.status === 'awaiting_opponent' && <span className="tag" style={{ background: 'var(--orange-l)', color: 'var(--orange-d)' }}>aguardando adversário</span>}</div>
           <div className="adm-sub">{fmtDate(m.played_at)} · {m.set_scores}{m.went_super ? ' · super TB' : ''}{m.is_extra ? ' · extra' : ''} · vencedor +{m.winner_points} / perdedor +{m.loser_points}</div>
+          {m.proof_url && <a className="bt" href={m.proof_url} target="_blank" rel="noopener noreferrer" style={{ marginTop: 8 }}><Icon name="camera" size={14} /> Ver foto do placar</a>}
           <div className="adm-actions">
             <button className="bt ok" disabled={busy === m.id} onClick={() => act(m.id, 'approve_match')}>Aprovar</button>
             <button className="bt no" disabled={busy === m.id} onClick={() => act(m.id, 'reject_match')}>Recusar</button>
