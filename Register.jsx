@@ -109,7 +109,7 @@ export default function Register({ session, profile, settings, nav }) {
         {preview && <div className="ptsbox">Pontos (após aprovação): <b>você +{preview.me}</b> · adversário +{preview.opp}</div>}
         <div className="form-lbl">DATA</div>
         <input className="date" type="date" value={date} onChange={e => setDate(e.target.value)} />
-        <div className="form-lbl">FOTO DOS JOGADORES</div>
+        <div className="form-lbl">FOTO DOS JOGADORES (opcional)</div>
         <div style={{ fontSize: 12, color: 'var(--ink-2)', marginBottom: 6, fontWeight: 600 }}>Não esquece de enviar a foto no grupo do WhatsApp.</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {proofPreview && <img src={proofPreview} alt="" style={{ width: 54, height: 54, borderRadius: 10, objectFit: 'cover' }} />}
