@@ -66,13 +66,11 @@ export default function App() {
 
   useEffect(() => { loadProfile(); loadBadge() }, [loadProfile, loadBadge])
 
-  // tempo real
+  // tempo real: apenas as notificacoes do proprio usuario (leve, nao estoura cota)
   useEffect(() => {
     if (!session) return
     const ch = supabase.channel('rgta-rt')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => { setTick(t => t + 1); loadProfile(); loadBadge() })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${session.user.id}` }, () => { setTick(t => t + 1); loadBadge() })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { setTick(t => t + 1); loadProfile() })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${session.user.id}` }, () => { setTick(t => t + 1); loadBadge(); loadProfile() })
       .subscribe()
     chanRef.current = ch
     return () => { supabase.removeChannel(ch) }

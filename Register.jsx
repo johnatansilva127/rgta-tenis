@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { supabase, compatible, calcPoints, uploadProof } from './supabaseClient'
+import { supabase, compatible, calcPoints } from './supabaseClient'
 import Avatar from './Avatar.jsx'
 import Icon from './Icon.jsx'
 
@@ -13,9 +13,6 @@ export default function Register({ session, profile, settings, nav }) {
   const [superTb, setSuperTb] = useState(false)
   const [wo, setWo] = useState(false)
   const [date, setDate] = useState(today())
-  const [proofFile, setProofFile] = useState(null)
-  const [proofPreview, setProofPreview] = useState('')
-  function onProof(e) { const f = e.target.files?.[0]; setProofFile(f || null); setProofPreview(f ? URL.createObjectURL(f) : '') }
   const [err, setErr] = useState(''); const [ok, setOk] = useState(''); const [saving, setSaving] = useState(false)
 
   const myCat = profile?.category || 'C'
@@ -43,11 +40,9 @@ export default function Register({ session, profile, settings, nav }) {
     const scores = wo ? 'W.O.' : buildScores()
     if (!wo && !scores) return setErr('Informe o placar de pelo menos um set.')
     setSaving(true)
-    let proofUrl = null
-    if (proofFile) { try { proofUrl = await uploadProof(session.user.id, proofFile) } catch (e) { setSaving(false); return setErr('Falha ao enviar a foto. Tente novamente.') } }
     const { error } = await supabase.rpc('register_match', {
       p_opponent: opponent, p_result: result, p_set_scores: scores,
-      p_went_super: superTb && !wo, p_played_at: date, p_wo: wo, p_proof_url: proofUrl,
+      p_went_super: superTb && !wo, p_played_at: date, p_wo: wo,
     })
     setSaving(false)
     if (error) return setErr(error.message)
@@ -109,12 +104,7 @@ export default function Register({ session, profile, settings, nav }) {
         {preview && <div className="ptsbox">Pontos (após aprovação): <b>você +{preview.me}</b> · adversário +{preview.opp}</div>}
         <div className="form-lbl">DATA</div>
         <input className="date" type="date" value={date} onChange={e => setDate(e.target.value)} />
-        <div className="form-lbl">FOTO DOS JOGADORES (opcional)</div>
-        <div style={{ fontSize: 12, color: 'var(--ink-2)', marginBottom: 6, fontWeight: 600 }}>Não esquece de enviar a foto no grupo do WhatsApp.</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {proofPreview && <img src={proofPreview} alt="" style={{ width: 54, height: 54, borderRadius: 10, objectFit: 'cover' }} />}
-          <input type="file" accept="image/*" onChange={onProof} />
-        </div>
+        <div className="ptsbox" style={{ marginTop: 16 }}>Não esquece de enviar a foto dos jogadores no grupo do WhatsApp.</div>
         <button className="cta" style={{ marginTop: 22 }} disabled={saving} onClick={save}>
           {saving ? 'Enviando…' : 'Enviar para confirmação'}
         </button>

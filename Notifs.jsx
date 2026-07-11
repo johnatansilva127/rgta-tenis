@@ -76,7 +76,6 @@ export default function Notifs({ session, nav, tick }) {
                 <b>{m.opponent?.name}</b> registrou uma partida
               </div>
               <div className="adm-sub">{m.set_scores}{m.went_super ? ' · super TB' : ''} · resultado pra você: <b>{m.result === 'V' ? 'vitória' : 'derrota'}</b></div>
-              {m.proof_url && <a className="bt" href={m.proof_url} target="_blank" rel="noopener noreferrer" style={{ marginTop: 8 }}><Icon name="camera" size={14} /> Ver foto do placar</a>}
               <div className="adm-actions">
                 <button className="bt ok" disabled={busy === m.id} onClick={() => act(m.id, 'confirm_match')}>Confirmar</button>
                 <button className="bt no" disabled={busy === m.id} onClick={() => act(m.id, 'dispute_match')}>Contestar</button>
