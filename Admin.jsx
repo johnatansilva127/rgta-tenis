@@ -7,7 +7,7 @@ const today = () => new Date().toISOString().slice(0, 10)
 const fmtDate = (d) => { if (!d) return ''; const [y, m, da] = d.split('-'); return `${da}/${m}/${y}` }
 function downloadCSV(filename, rows) {
   const csv = rows.map(r => r.map(c => '"' + String(c ?? '').replace(/"/g, '""') + '"').join(',')).join('\n')
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click()
 }
 const TABS = [['aprovar', 'Aprovações'], ['jogadores', 'Jogadores'], ['novo', 'Novo jogador'], ['lancar', 'Lançar'], ['partidas', 'Partidas'], ['data', 'Por data'], ['config', 'Pontuação'], ['logs', 'Logs']]
@@ -76,6 +76,7 @@ function Players({ session, reload, tick }) {
     if (error) return alert(error.message); setEditing(null); setMsg(`${form.name} atualizado.`); await reload(); load()
   }
   async function toggleAdmin(p) { const { error } = await supabase.rpc('admin_set_admin', { p_id: p.id, p_value: !p.is_admin }); if (error) return alert(error.message); load(); reload() }
+  async function togglePlayer(p) { const { error } = await supabase.rpc('admin_set_player', { p_id: p.id, p_value: !p.is_player }); if (error) return alert(error.message); setMsg(`${p.name} ${!p.is_player ? 'incluído no' : 'removido do'} ranking.`); load(); reload() }
   async function del(p) {
     if (!confirm(`Excluir ${p.name}? Remove a conta e as partidas. Não dá para desfazer.`)) return
     const { error } = await supabase.rpc('admin_delete_player', { p_id: p.id }); if (error) return alert(error.message); setMsg(`${p.name} excluído.`); load()
@@ -101,8 +102,8 @@ function Players({ session, reload, tick }) {
       <input className="date" placeholder="Buscar jogador…" value={q} onChange={e => setQ(e.target.value)} style={{ marginBottom: 12 }} />
       {filtered.map(p => (
         <div className="adm-card" key={p.id}>
-          <div className="adm-line"><Avatar name={p.name} url={p.avatar_url} size={30} /> <b>{p.name}</b> <span className="tag">{p.category}</span> {p.is_admin && <span className="tag adm">admin</span>}<span style={{ marginLeft: 'auto', fontWeight: 800 }}>{p.points} pts</span></div>
-          <div className="adm-sub">{p.wins}V / {p.losses}D · {p.position}º na categoria</div>
+          <div className="adm-line"><Avatar name={p.name} url={p.avatar_url} size={30} /> <b>{p.name}</b> <span className="tag">{p.category}</span> {p.is_admin && <span className="tag adm">admin</span>}{!p.is_player && <span className="tag" style={{ background: 'var(--orange-l)', color: 'var(--orange-d)' }}>fora do ranking</span>}<span style={{ marginLeft: 'auto', fontWeight: 800 }}>{p.points} pts</span></div>
+          <div className="adm-sub">{p.wins}V / {p.losses}D{p.is_player ? ` · ${p.position}º na categoria` : ' · não aparece no ranking público'}</div>
           {editing === p.id ? (
             <div className="edit-grid">
               <label>Nome<input value={form.name} onChange={e => setF('name', e.target.value)} /></label>
@@ -119,6 +120,7 @@ function Players({ session, reload, tick }) {
               <button className="bt" onClick={() => startEdit(p)}>Editar</button>
               <button className="bt" onClick={() => resetPwd(p)}>Redefinir senha</button>
               <button className="bt" onClick={() => exportPlayer(p)}><Icon name="download" size={14} /> Exportar</button>
+              <button className="bt" onClick={() => togglePlayer(p)}>{p.is_player ? 'Tirar do ranking' : 'Incluir no ranking'}</button>
               <button className="bt" onClick={() => toggleAdmin(p)}>{p.is_admin ? 'Remover admin' : 'Tornar admin'}</button>
               {p.id !== session.user.id && <button className="bt no" onClick={() => del(p)}>Excluir</button>}
             </div>
