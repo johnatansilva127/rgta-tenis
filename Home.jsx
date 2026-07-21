@@ -48,7 +48,10 @@ export default function Home({ session, profile, nav, isAdmin, openNotifs, badge
       </div>
       <div className="scroll">
         <div className="sec">
-          <button className="cta" onClick={() => nav('register')}><Icon name="plus" size={18} /> Registrar nova partida</button>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button className="cta" style={{ flex: '1 1 160px' }} onClick={() => nav('register')}><Icon name="plus" size={18} /> Registrar nova partida</button>
+            <a className="cta ghost" style={{ flex: '1 1 140px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} href="https://rgtareservas.com.br/" target="_blank" rel="noopener noreferrer"><Icon name="ball" size={18} /> Reservar quadra</a>
+          </div>
           {isAdmin && <button className="cta ghost" style={{ marginTop: 10 }} onClick={() => nav('admin')}><Icon name="shield" size={18} /> Painel do administrador</button>}
         </div>
         <div className="sec" style={{ paddingTop: 0 }}>
