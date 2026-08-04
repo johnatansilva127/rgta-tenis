@@ -43,6 +43,7 @@ export default function Ranking({ session, tick, openPlayer, rankTab, setRankTab
         {['A', 'B', 'C'].map(c => <button key={c} className={tab === c ? 'on' : ''} onClick={() => setTab(c)}>CAT. {c}</button>)}
       </div>
       <div className="scroll">
+        <div style={{ padding: '8px 14px 2px', color: 'var(--ink-2)', fontSize: 12, lineHeight: 1.35 }}>Empate nos pontos mantém quem já estava na frente. Só ultrapassa quem fizer mais pontos.</div>
         {rows === null && <div className="center"><div className="spin" /></div>}
         {rows && rows.length === 0 && <div className="center">Nenhum jogador na categoria {tab}.</div>}
         {rows && rows.map(r => (
